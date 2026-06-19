@@ -14,15 +14,13 @@ namespace MP.Gameplay.Combat
         [SerializeField] private float radius = 0.18f;
         [SerializeField] private float lifetime = 2f;
 
-        private readonly NetworkVariable<Vector2> replicatedDirection = new(Vector2.right, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-        private readonly NetworkVariable<double> replicatedSpawnTime = new(0d, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
         private Vector2 direction;
         private TeamId ownerTeam;
         private float damage;
         private float maxDistance;
         private float traveledDistance;
         private float remainingLifetime;
+        private double serverSpawnTime;
         private bool initialized;
         private NetworkTransform networkTransform;
 
@@ -38,14 +36,6 @@ namespace MP.Gameplay.Combat
                 return;
             }
 
-            direction = replicatedDirection.Value.sqrMagnitude > 0.0001f ? replicatedDirection.Value.normalized : Vector2.right;
-            float elapsedTime = GetElapsedTimeSinceServerSpawn();
-            float moveDistance = Mathf.Max(0f, speed) * elapsedTime;
-            transform.position += (Vector3)(direction * moveDistance);
-            traveledDistance = moveDistance;
-            remainingLifetime = Mathf.Max(0f, lifetime - elapsedTime);
-            initialized = true;
-
             if (networkTransform != null)
             {
                 networkTransform.enabled = false;
@@ -60,10 +50,37 @@ namespace MP.Gameplay.Combat
             maxDistance = Mathf.Max(0f, projectileMaxDistance);
             traveledDistance = 0f;
             remainingLifetime = Mathf.Max(0f, lifetime);
+            serverSpawnTime = GetServerTime();
             initialized = true;
+        }
 
-            replicatedDirection.Value = direction;
-            replicatedSpawnTime.Value = GetServerTime();
+        public void PublishSpawnStateServer()
+        {
+            if (!NetworkContext.IsServer || !NetworkObject.IsSpawned)
+            {
+                return;
+            }
+
+            InitializeClientVisualClientRpc(direction, serverSpawnTime);
+        }
+
+        [ClientRpc]
+        private void InitializeClientVisualClientRpc(Vector2 spawnDirection, double spawnTime)
+        {
+            if (NetworkContext.HasServerAuthority())
+            {
+                return;
+            }
+
+            direction = IsFinite(spawnDirection) && spawnDirection.sqrMagnitude > 0.0001f ? spawnDirection.normalized : Vector2.right;
+            serverSpawnTime = spawnTime;
+
+            float elapsedTime = GetElapsedTimeSinceServerSpawn();
+            float moveDistance = Mathf.Max(0f, speed) * elapsedTime;
+            transform.position += (Vector3)(direction * moveDistance);
+            traveledDistance = moveDistance;
+            remainingLifetime = Mathf.Max(0f, lifetime - elapsedTime);
+            initialized = true;
         }
 
         private void Update()
@@ -182,7 +199,7 @@ namespace MP.Gameplay.Combat
 
         private float GetElapsedTimeSinceServerSpawn()
         {
-            double elapsedTime = GetServerTime() - replicatedSpawnTime.Value;
+            double elapsedTime = GetServerTime() - serverSpawnTime;
             if (double.IsNaN(elapsedTime) || double.IsInfinity(elapsedTime))
             {
                 return 0f;

@@ -30,6 +30,7 @@ namespace MP.Gameplay.Combat
             projectile.InitializeServer(direction, team, damage, maxDistance);
             if (NetworkSpawnUtility.TrySpawnNetworkObject(projectileObject))
             {
+                projectile.PublishSpawnStateServer();
                 return true;
             }
 
