@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cc681886f1b4dbd85ac44031a3920d1, type: 3}
+  m_Name: TestSword
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Items.ItemDefinition
+  itemId: test_sword
+  displayName: Test Sword
+  dropPrefab: {fileID: 2468559907772913054, guid: 77d5e838ed8a2f847a6ac737424bd0a6, type: 3}
+  isStackable: 0
+  maxStackSize: 1
+  canEquip: 1
+  equipSlot: 1
+  equipStatModifiers:
+  - {fileID: 11400000, guid: 97b7792729763a64394384c732859f4d, type: 2}

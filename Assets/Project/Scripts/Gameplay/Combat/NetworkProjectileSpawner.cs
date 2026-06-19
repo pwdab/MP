@@ -1,0 +1,55 @@
+using MP.Gameplay.Entity;
+using MP.Network;
+using Unity.Netcode;
+using UnityEngine;
+
+namespace MP.Gameplay.Combat
+{
+    public static class NetworkProjectileSpawner
+    {
+        public static bool TrySpawn(
+            GameObject projectilePrefab,
+            Vector3 position,
+            Vector2 direction,
+            TeamId team,
+            float damage,
+            float maxDistance)
+        {
+            if (!NetworkContext.HasServerAuthority() || projectilePrefab == null || !IsFinite(position) || !IsFinite(direction))
+            {
+                return false;
+            }
+
+            GameObject projectileObject = Object.Instantiate(projectilePrefab, position, Quaternion.identity);
+            if (!projectileObject.TryGetComponent(out NetworkProjectile projectile) || !projectileObject.TryGetComponent(out NetworkObject _))
+            {
+                Object.Destroy(projectileObject);
+                return false;
+            }
+
+            projectile.InitializeServer(direction, team, damage, maxDistance);
+            if (NetworkSpawnUtility.TrySpawnNetworkObject(projectileObject))
+            {
+                return true;
+            }
+
+            Object.Destroy(projectileObject);
+            return false;
+        }
+
+        private static bool IsFinite(Vector2 value)
+        {
+            return IsFinite(value.x) && IsFinite(value.y);
+        }
+
+        private static bool IsFinite(Vector3 value)
+        {
+            return IsFinite(value.x) && IsFinite(value.y) && IsFinite(value.z);
+        }
+
+        private static bool IsFinite(float value)
+        {
+            return !float.IsNaN(value) && !float.IsInfinity(value);
+        }
+    }
+}
