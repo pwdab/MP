@@ -16,6 +16,7 @@ namespace MP.Network
 
         public float CurrentHealth => currentHealth;
         public bool IsDead => isDead;
+        public bool IsValid => currentHealth >= 0f;
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {

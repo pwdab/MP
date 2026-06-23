@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 621f319c5ed54b188f2f741f32e77afa, type: 3}
+  m_Name: mage_a
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Progression.Jobs.JobDefinition
+  jobId: mage_a
+  displayName: "\uB9C8\uBC95\uC0AC A - \uD654\uC5FC \uB9C8\uBC95\uC0AC"
+  category: 3
+  parentJob: {fileID: 0}
+  statModifiers:
+  - {fileID: 11400000, guid: a95f1b95e8e323341ab9d76b1db1959e, type: 2}
+  - {fileID: 11400000, guid: 9782660d3075b4c40a01690cb08eec83, type: 2}
+  - {fileID: 11400000, guid: 30b8c7e68561f1644bd377ac7109b285, type: 2}
+  - {fileID: 11400000, guid: 861569c00b02c754cb179bb18b18d4e3, type: 2}
+  - {fileID: 11400000, guid: 56d7859763f8ac542ab7e91d93b027dc, type: 2}
+  - {fileID: 11400000, guid: c2962b068489d71459a50ee4761f41eb, type: 2}
+  - {fileID: 11400000, guid: 16de51069a0a9b343b244ce75516ff09, type: 2}

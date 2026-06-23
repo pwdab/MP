@@ -13,14 +13,14 @@ namespace MP.Network
                 return false;
             }
 
+            if (!NetworkContext.HasServerAuthority())
+            {
+                return false;
+            }
+
             if (!NetworkContext.IsNetworkActive)
             {
                 return true;
-            }
-
-            if (!NetworkContext.IsServer)
-            {
-                return false;
             }
 
             if (!gameObject.TryGetComponent(out NetworkObject networkObject))

@@ -8,6 +8,7 @@ namespace MP.UI
     public sealed class CombatNetworkTestHud : MonoBehaviour
     {
         private float smoothedDeltaTime;
+        private Vector2 scrollPosition;
 
         private void Update()
         {
@@ -16,13 +17,15 @@ namespace MP.UI
 
         private void OnGUI()
         {
-            const int width = 420;
-            const int height = 205;
+            float width = Mathf.Clamp(Screen.width - 32f, 280f, 460f);
+            float height = Mathf.Clamp(Screen.height - 32f, 220f, 320f);
 
             GUILayout.BeginArea(new Rect(16, 16, width, height), GUI.skin.box);
+            scrollPosition = GUILayout.BeginScrollView(scrollPosition, false, true);
             GUILayout.Label("Combat Network Test");
             GUILayout.Label($"View: {GetViewLabel()}");
-            GUILayout.Label("Ctrl+H: Host    Ctrl+C: Client    Ctrl+S: Shutdown    Ctrl+R: Revive Player");
+            GUILayout.Label("Ctrl+H: Host    Ctrl+C: Client    Ctrl+S: Shutdown");
+            GUILayout.Label("Ctrl+R: Restart Scene    R: Revive Player");
             GUILayout.Label("WASD: Move owned player    Left Click: Fire projectile");
             GUILayout.Label("Yellow ring: auto attack    Blue ring: projectile range");
 
@@ -56,6 +59,7 @@ namespace MP.UI
                 GUILayout.Label("Player HP: not found");
             }
 
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
 
             DrawStatsPanel();

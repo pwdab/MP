@@ -19,6 +19,7 @@ namespace MP.Gameplay.Stats
         }
 
         public float MaxHealth => Stats.MaxHealth;
+        public float Defense => Stats.Defense;
         public float AttackPower => Stats.AttackPower;
         public float AttackSpeed => Stats.AttackSpeed;
         public float AutoAttackRange => Stats.AutoAttackRange;

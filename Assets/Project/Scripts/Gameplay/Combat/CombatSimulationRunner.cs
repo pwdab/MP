@@ -1,4 +1,5 @@
 using MP.Network;
+using MP.Gameplay.Movement;
 using UnityEngine;
 
 namespace MP.Gameplay.Combat
@@ -36,10 +37,14 @@ namespace MP.Gameplay.Combat
         {
             if (combatants == null || combatants.Length == 0)
             {
+                TickDynamicEnemyMovers(deltaTime);
                 TickDynamicCombatants(deltaTime);
                 TickDynamicProjectileAttackers(deltaTime);
+                TickDynamicCastleAttackers(deltaTime);
                 return;
             }
+
+            TickDynamicEnemyMovers(deltaTime);
 
             for (int i = 0; i < combatants.Length; i++)
             {
@@ -51,6 +56,16 @@ namespace MP.Gameplay.Combat
             }
 
             TickDynamicProjectileAttackers(deltaTime);
+            TickDynamicCastleAttackers(deltaTime);
+        }
+
+        private static void TickDynamicEnemyMovers(float deltaTime)
+        {
+            EnemyMoveToCastleComponent[] movers = FindObjectsByType<EnemyMoveToCastleComponent>(FindObjectsSortMode.None);
+            for (int i = 0; i < movers.Length; i++)
+            {
+                movers[i].TickServer(deltaTime);
+            }
         }
 
         private static void TickDynamicCombatants(float deltaTime)
@@ -68,6 +83,15 @@ namespace MP.Gameplay.Combat
             for (int i = 0; i < projectileAttackers.Length; i++)
             {
                 projectileAttackers[i].TickServer(deltaTime);
+            }
+        }
+
+        private static void TickDynamicCastleAttackers(float deltaTime)
+        {
+            EnemyCastleAttackComponent[] castleAttackers = FindObjectsByType<EnemyCastleAttackComponent>(FindObjectsSortMode.None);
+            for (int i = 0; i < castleAttackers.Length; i++)
+            {
+                castleAttackers[i].TickServer(deltaTime);
             }
         }
 

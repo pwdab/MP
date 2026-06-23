@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 621f319c5ed54b188f2f741f32e77afa, type: 3}
+  m_Name: assassin_b
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Progression.Jobs.JobDefinition
+  jobId: assassin_b
+  displayName: "\uC554\uC0B4\uC790 B - \uCC98\uD615 \uC554\uC0B4\uC790"
+  category: 2
+  parentJob: {fileID: 0}
+  statModifiers:
+  - {fileID: 11400000, guid: 94d54314ea3b17442b76938e2fde8f28, type: 2}
+  - {fileID: 11400000, guid: 60a267824e224144685ba5e6f3e87808, type: 2}
+  - {fileID: 11400000, guid: d0801a811e6efcb449fd3350e54be28d, type: 2}
+  - {fileID: 11400000, guid: 3ddc46396591cd34f99d00b3b15b72f5, type: 2}
+  - {fileID: 11400000, guid: 8e9514883e6f3e14d885ff6ebf298306, type: 2}
+  - {fileID: 11400000, guid: f4c463847ac00044e95be4e463bc77d1, type: 2}
+  - {fileID: 11400000, guid: 0279abd0abea26648877b399e11cf075, type: 2}

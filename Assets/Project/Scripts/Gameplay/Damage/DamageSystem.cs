@@ -1,4 +1,6 @@
 using UnityEngine;
+using MP.Gameplay.Entity;
+using MP.Gameplay.Stats;
 
 namespace MP.Gameplay.Damage
 {
@@ -12,7 +14,7 @@ namespace MP.Gameplay.Damage
                 return new DamageResult(request.Attacker, null, request.BaseDamage, 0f, false);
             }
 
-            float finalDamage = Mathf.Max(0f, request.BaseDamage);
+            float finalDamage = ApplyDefense(request.Target, request.BaseDamage);
             float appliedDamage = request.Target.ApplyDamage(finalDamage);
 
             return new DamageResult(
@@ -21,6 +23,23 @@ namespace MP.Gameplay.Damage
                 request.BaseDamage,
                 appliedDamage,
                 request.Target.IsDead);
+        }
+
+        private static float ApplyDefense(HealthComponent target, float baseDamage)
+        {
+            float clampedBaseDamage = Mathf.Max(0f, baseDamage);
+            if (!target.TryGetComponent(out StatsComponent stats))
+            {
+                return clampedBaseDamage;
+            }
+
+            float defense = stats.Defense;
+            if (defense <= 0f)
+            {
+                return clampedBaseDamage;
+            }
+
+            return clampedBaseDamage * 100f / defense;
         }
     }
 }

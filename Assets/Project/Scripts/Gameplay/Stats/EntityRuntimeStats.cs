@@ -22,6 +22,14 @@ namespace MP.Gameplay.Stats
             }
         }
 
+        public float Defense
+        {
+            get
+            {
+                return GetValue(StatId.Defense);
+            }
+        }
+
         public float AttackPower
         {
             get

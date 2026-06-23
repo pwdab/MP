@@ -11,5 +11,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Project/Scenes/Test/CombatNetworkTest.unity
     guid: 36367a5f141970c4ab1f04ce77194dfe
+  - enabled: 1
+    path: Assets/Project/Scenes/Main/CastleDefensePrototype.unity
+    guid: 96bc6f4ceb381344886b95f94d6fceb8
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

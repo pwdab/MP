@@ -8,6 +8,7 @@ namespace MP.Gameplay.Stats
         AutoAttackRange,
         ProjectileRange,
         MoveSpeed,
-        RespawnDelay
+        RespawnDelay,
+        Defense
     }
 }

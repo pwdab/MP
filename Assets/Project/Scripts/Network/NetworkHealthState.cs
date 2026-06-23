@@ -8,12 +8,12 @@ namespace MP.Network
     [RequireComponent(typeof(HealthComponent))]
     public sealed class NetworkHealthState : NetworkBehaviour
     {
-        private readonly NetworkVariable<HealthStateSnapshot> healthState = new(new HealthStateSnapshot(0f, false), NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        private readonly NetworkVariable<HealthStateSnapshot> healthState = new(new HealthStateSnapshot(-1f, false), NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
         private HealthComponent health;
 
-        public float CurrentHealth => healthState.Value.CurrentHealth;
-        public bool IsDead => healthState.Value.IsDead;
+        public float CurrentHealth => healthState.Value.IsValid ? healthState.Value.CurrentHealth : health != null ? health.CurrentHealth : 0f;
+        public bool IsDead => healthState.Value.IsValid ? healthState.Value.IsDead : health != null && health.IsDead;
 
         private void Awake()
         {
@@ -81,6 +81,11 @@ namespace MP.Network
 
         private void ApplyReplicatedState(HealthStateSnapshot snapshot)
         {
+            if (!snapshot.IsValid)
+            {
+                return;
+            }
+
             health.ApplyHealthStateSnapshot(snapshot.CurrentHealth, snapshot.IsDead);
         }
 

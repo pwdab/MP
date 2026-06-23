@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 621f319c5ed54b188f2f741f32e77afa, type: 3}
+  m_Name: knight_a
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Progression.Jobs.JobDefinition
+  jobId: knight_a
+  displayName: "\uAE30\uC0AC A - \uC911\uC7A5 \uAE30\uC0AC"
+  category: 1
+  parentJob: {fileID: 0}
+  statModifiers:
+  - {fileID: 11400000, guid: edc0688758f933e45a7a474181fcc394, type: 2}
+  - {fileID: 11400000, guid: 827e7924691e7ae498f3a07fdcc352a7, type: 2}
+  - {fileID: 11400000, guid: c9ea88d16b5ad39449914a923b48ceaf, type: 2}
+  - {fileID: 11400000, guid: 2b598e40998498640b21d57eba323a06, type: 2}
+  - {fileID: 11400000, guid: 0591443cab1f1ce4b8fb3c24a7e14df4, type: 2}
+  - {fileID: 11400000, guid: b07466e1a28e2394583575ff65c21bb8, type: 2}
+  - {fileID: 11400000, guid: 1b2d5e549ea0de3439830e59a1172eba, type: 2}
