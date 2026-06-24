@@ -1,4 +1,5 @@
 using MP.Gameplay.Entity;
+using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
 using MP.Network;
 using UnityEngine;
@@ -27,6 +28,11 @@ namespace MP.Gameplay.Movement
 
         public void TickServer(float deltaTime)
         {
+            if (!StageSimulationGate.CanRunCombatSimulation())
+            {
+                return;
+            }
+
             if (!NetworkContext.HasServerAuthority() || !characterState.CanMove)
             {
                 return;

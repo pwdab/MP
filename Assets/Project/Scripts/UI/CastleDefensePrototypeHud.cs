@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using MP.Gameplay.Entity;
+using MP.Gameplay.Stages;
 using MP.Network;
 using MP.Progression.Jobs;
 using Unity.Netcode;
@@ -10,6 +11,7 @@ namespace MP.UI
     public sealed class CastleDefensePrototypeHud : MonoBehaviour
     {
         private CastleEntity castle;
+        private StageFlowController stageFlow;
         private NetworkPlayerJobSelector localJobSelector;
         private HealthComponent localHealth;
         private Vector2 scrollPosition;
@@ -23,6 +25,7 @@ namespace MP.UI
 
             GUILayout.Label("Castle Defense Prototype");
             DrawNetworkState();
+            DrawStageState();
             DrawCastleState();
             DrawLocalPlayerState();
             DrawEnemyState();
@@ -46,6 +49,41 @@ namespace MP.UI
             }
 
             GUILayout.Label($"Mode: {mode}");
+        }
+
+        private void DrawStageState()
+        {
+            stageFlow ??= FindFirstObjectByType<StageFlowController>();
+            if (stageFlow == null)
+            {
+                GUILayout.Label("Stage: missing");
+                return;
+            }
+
+            GUILayout.Label($"Stage: {stageFlow.CurrentStageState}");
+            if (stageFlow.CurrentWave != null)
+            {
+                GUILayout.Label($"Wave: {stageFlow.CurrentWaveNumber}/{stageFlow.WaveCount} {stageFlow.CurrentWave.DisplayName}");
+                GUILayout.Label($"Wave Time: {stageFlow.CurrentWaveRemainingTime:0.0}s");
+                if (stageFlow.CurrentWave.BossWave)
+                {
+                    GUILayout.Label($"Bosses: {EnemySpawner.CountAliveBosses(stageFlow.CurrentWaveIndex)}");
+                }
+            }
+            else
+            {
+                GUILayout.Label($"Wave: -/{stageFlow.WaveCount}");
+            }
+
+            GUILayout.Label($"Gold: {stageFlow.CurrentGold}  EXP: {stageFlow.CurrentExperience}");
+
+            if (stageFlow.CurrentStageState == StageState.Rest && NetworkContext.HasServerAuthority())
+            {
+                if (GUILayout.Button("Start Next Wave"))
+                {
+                    stageFlow.ContinueFromRest();
+                }
+            }
         }
 
         private void DrawCastleState()

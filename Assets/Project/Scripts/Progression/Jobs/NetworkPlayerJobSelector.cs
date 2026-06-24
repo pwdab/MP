@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using MP.Gameplay.Stages;
 using Unity.Netcode;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
@@ -43,7 +44,7 @@ namespace MP.Progression.Jobs
 
         private void Update()
         {
-            if (!IsOwner)
+            if (!IsOwner || !StageSimulationGate.CanAcceptPlayerInput())
             {
                 return;
             }
@@ -60,6 +61,11 @@ namespace MP.Progression.Jobs
 
         public void SelectJob(int jobIndex)
         {
+            if (!StageSimulationGate.CanAcceptPlayerInput())
+            {
+                return;
+            }
+
             if (!HasJob(jobIndex))
             {
                 return;
@@ -82,6 +88,11 @@ namespace MP.Progression.Jobs
 
         private void SetSelectedJobIndex(int jobIndex)
         {
+            if (!StageSimulationGate.CanAcceptPlayerInput())
+            {
+                return;
+            }
+
             if (!HasJob(jobIndex))
             {
                 return;

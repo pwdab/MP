@@ -1,4 +1,5 @@
 using System.Collections;
+using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
 using MP.Network;
 using UnityEngine;
@@ -10,6 +11,8 @@ namespace MP.Gameplay.Entity
     public sealed class RespawnComponent : MonoBehaviour
     {
         [SerializeField] private bool autoRespawnOnDeath;
+        [SerializeField] private bool respawnNearCastle;
+        [SerializeField] private float castleRespawnRadius = 3f;
 
         private HealthComponent health;
         private StatsComponent stats;
@@ -50,14 +53,20 @@ namespace MP.Gameplay.Entity
                 return;
             }
 
+            if (!StageSimulationGate.CanRunCombatSimulation())
+            {
+                return;
+            }
+
             if (!health.IsDead)
             {
                 return;
             }
 
             CancelPendingRespawn();
+            MoveToRespawnPosition();
             health.RestoreToFullHealth();
-            // TODO: Move to respawn position, apply invulnerability, restore input, and clear status effects.
+            // TODO: Apply invulnerability, restore input, and clear status effects.
         }
 
         private void OnDied(HealthComponent _)
@@ -72,7 +81,17 @@ namespace MP.Gameplay.Entity
 
         private IEnumerator RespawnAfterDelay()
         {
-            yield return new WaitForSeconds(stats.RespawnDelay);
+            float remainingDelay = stats.RespawnDelay;
+            while (remainingDelay > 0f)
+            {
+                if (StageSimulationGate.CanRunCombatSimulation())
+                {
+                    remainingDelay -= Time.deltaTime;
+                }
+
+                yield return null;
+            }
+
             respawnCoroutine = null;
             RespawnServer();
         }
@@ -86,6 +105,23 @@ namespace MP.Gameplay.Entity
 
             StopCoroutine(respawnCoroutine);
             respawnCoroutine = null;
+        }
+
+        private void MoveToRespawnPosition()
+        {
+            if (!respawnNearCastle)
+            {
+                return;
+            }
+
+            CastleEntity castle = FindFirstObjectByType<CastleEntity>();
+            if (castle == null)
+            {
+                return;
+            }
+
+            Vector2 offset = Random.insideUnitCircle * Mathf.Max(0f, castleRespawnRadius);
+            transform.position = castle.transform.position + (Vector3)offset;
         }
     }
 }

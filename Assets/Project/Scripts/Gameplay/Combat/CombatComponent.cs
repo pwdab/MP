@@ -1,5 +1,6 @@
 using MP.Gameplay.Damage;
 using MP.Gameplay.Entity;
+using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
 using UnityEngine;
 
@@ -42,6 +43,11 @@ namespace MP.Gameplay.Combat
 
         public void TickServer(float deltaTime)
         {
+            if (!StageSimulationGate.CanRunCombatSimulation())
+            {
+                return;
+            }
+
             if (!autoAttack || (health != null && health.IsDead))
             {
                 return;

@@ -1,5 +1,6 @@
 using MP.Gameplay.Damage;
 using MP.Gameplay.Entity;
+using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
 using MP.Network;
 using UnityEngine;
@@ -16,16 +17,23 @@ namespace MP.Gameplay.Combat
         private StatsComponent stats;
         private CharacterStateComponent characterState;
         private EnemyTargetingComponent targeting;
+        private Collider2D selfCollider;
 
         private void Awake()
         {
             stats = GetComponent<StatsComponent>();
             characterState = GetComponent<CharacterStateComponent>();
             targeting = GetComponent<EnemyTargetingComponent>();
+            selfCollider = GetComponent<Collider2D>();
         }
 
         public void TickServer(float deltaTime)
         {
+            if (!StageSimulationGate.CanRunCombatSimulation())
+            {
+                return;
+            }
+
             if (!NetworkContext.HasServerAuthority() || !characterState.CanAttack)
             {
                 return;
@@ -36,10 +44,8 @@ namespace MP.Gameplay.Combat
                 return;
             }
 
-            Vector2 origin = transform.position;
-            Vector2 target = targetTransform.position;
             float range = Mathf.Max(0f, stats.AutoAttackRange);
-            if ((target - origin).sqrMagnitude > range * range)
+            if (!IsTargetInAttackRange(targetTransform, range))
             {
                 return;
             }
@@ -55,6 +61,20 @@ namespace MP.Gameplay.Combat
         {
             targeting ??= GetComponent<EnemyTargetingComponent>();
             targeting.SetFallbackCastle(castle);
+        }
+
+        private bool IsTargetInAttackRange(Transform targetTransform, float range)
+        {
+            Collider2D targetCollider = targetTransform.GetComponent<Collider2D>();
+            if (selfCollider != null && targetCollider != null)
+            {
+                ColliderDistance2D distance = selfCollider.Distance(targetCollider);
+                return distance.isOverlapped || distance.distance <= range;
+            }
+
+            Vector2 origin = transform.position;
+            Vector2 target = targetTransform.position;
+            return (target - origin).sqrMagnitude <= range * range;
         }
     }
 }

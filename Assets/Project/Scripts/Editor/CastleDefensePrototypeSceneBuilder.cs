@@ -25,15 +25,19 @@ namespace MP.Editor
         private const string SpriteFolder = "Assets/Project/Art/Sprites/Prototype";
         private const string PlayerSpritePath = SpriteFolder + "/PrototypePlayer.png";
         private const string EnemySpritePath = SpriteFolder + "/PrototypeEnemy.png";
+        private const string BossSpritePath = SpriteFolder + "/PrototypeBoss.png";
         private const string ProjectileSpritePath = SpriteFolder + "/PrototypeProjectile.png";
         private const string CastleSpritePath = SpriteFolder + "/PrototypeCastle.png";
         private const string MapSpritePath = SpriteFolder + "/PrototypeMapTile.png";
 
         private const string PlayerStatsPath = "Assets/Project/Data/Players/PrototypePlayerBaseStats.asset";
         private const string EnemyStatsPath = "Assets/Project/Data/Enemies/PrototypeEnemyBaseStats.asset";
+        private const string BossStatsPath = "Assets/Project/Data/Enemies/PrototypeBossBaseStats.asset";
         private const string CastleStatsPath = "Assets/Project/Data/Stages/PrototypeCastleBaseStats.asset";
+        private const string StageDefinitionPath = "Assets/Project/Data/Stages/PrototypeStage.asset";
         private const string PlayerPrefabPath = "Assets/Project/Prefabs/Players/PrototypePlayer.prefab";
         private const string EnemyPrefabPath = "Assets/Project/Prefabs/Enemies/PrototypeEnemy.prefab";
+        private const string BossPrefabPath = "Assets/Project/Prefabs/Enemies/PrototypeBoss.prefab";
         private const string ProjectilePrefabPath = "Assets/Project/Prefabs/Projectiles/PrototypeProjectile.prefab";
         private const string CastlePrefabPath = "Assets/Project/Prefabs/Tower/PrototypeCastle.prefab";
 
@@ -49,20 +53,23 @@ namespace MP.Editor
 
             EntityStatsDefinition playerStats = EnsureStatsDefinition(PlayerStatsPath, CreatePlayerBaseStats());
             EntityStatsDefinition enemyStats = EnsureStatsDefinition(EnemyStatsPath, CreateEnemyBaseStats());
+            EntityStatsDefinition bossStats = EnsureStatsDefinition(BossStatsPath, CreateBossBaseStats());
             EntityStatsDefinition castleStats = EnsureStatsDefinition(CastleStatsPath, CreateCastleBaseStats());
             JobDefinition[] jobs = EnsureJobDefinitions();
 
             GameObject projectilePrefab = EnsureProjectilePrefab();
             GameObject castlePrefab = EnsureCastlePrefab(castleStats);
-            GameObject enemyPrefab = EnsureEnemyPrefab(enemyStats);
+            GameObject enemyPrefab = EnsureEnemyPrefab(EnemyPrefabPath, "PrototypeEnemy", enemyStats, EnemySpritePath, Color.red, Vector3.one * 0.65f);
+            GameObject bossPrefab = EnsureEnemyPrefab(BossPrefabPath, "PrototypeBoss", bossStats, BossSpritePath, new Color(0.75f, 0.25f, 1f), Vector3.one * 1.1f);
             GameObject playerPrefab = EnsurePlayerPrefab(playerStats, projectilePrefab, jobs);
+            StageDefinition stageDefinition = EnsureStageDefinition(enemyPrefab, bossPrefab);
 
             CreateCamera();
             CreateMap();
             CreateCastleSpawner(castlePrefab);
             CreateSpawnPointsAndSpawner(enemyPrefab);
-            CreateNetworkManager(playerPrefab, castlePrefab, enemyPrefab, projectilePrefab);
-            CreateSimulationRoot();
+            CreateNetworkManager(playerPrefab, castlePrefab, enemyPrefab, bossPrefab, projectilePrefab);
+            CreateSimulationRoot(stageDefinition);
             CreateHud();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -101,6 +108,7 @@ namespace MP.Editor
         {
             EnsureSpriteTexture(PlayerSpritePath, new Color32(80, 150, 255, 255));
             EnsureSpriteTexture(EnemySpritePath, new Color32(255, 80, 80, 255));
+            EnsureSpriteTexture(BossSpritePath, new Color32(190, 70, 255, 255));
             EnsureSpriteTexture(ProjectileSpritePath, new Color32(255, 235, 90, 255));
             EnsureSpriteTexture(CastleSpritePath, new Color32(170, 170, 190, 255));
             EnsureSpriteTexture(MapSpritePath, new Color32(45, 55, 48, 255));
@@ -131,16 +139,16 @@ namespace MP.Editor
             }
         }
 
-        private static GameObject EnsureEnemyPrefab(EntityStatsDefinition enemyStats)
+        private static GameObject EnsureEnemyPrefab(string prefabPath, string prefabName, EntityStatsDefinition enemyStats, string spritePath, Color color, Vector3 scale)
         {
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             if (prefab != null)
             {
-                AssignEnemyPrefabReferences(prefab, enemyStats);
+                AssignEnemyPrefabReferences(prefab, enemyStats, spritePath, color, scale);
                 return prefab;
             }
 
-            var gameObject = new GameObject("PrototypeEnemy");
+            var gameObject = new GameObject(prefabName);
             try
             {
                 gameObject.AddComponent<NetworkObject>();
@@ -159,14 +167,14 @@ namespace MP.Editor
                 CombatRangeIndicator rangeIndicator = gameObject.AddComponent<CombatRangeIndicator>();
                 gameObject.AddComponent<DespawnOnDeathComponent>();
                 gameObject.AddComponent<ItemDropComponent>();
-                EnsureSpriteRenderer(gameObject, EnemySpritePath, Color.red, 1, Vector3.one * 0.65f);
+                EnsureSpriteRenderer(gameObject, spritePath, color, 1, scale);
                 EnsureBoxCollider(gameObject, Vector2.one);
 
                 AssignBaseStats(stats, enemyStats);
                 AssignTargetableTeam(targetable, TeamId.Enemy);
                 AssignRangeIndicator(rangeIndicator, true, false);
 
-                prefab = PrefabUtility.SaveAsPrefabAsset(gameObject, EnemyPrefabPath);
+                prefab = PrefabUtility.SaveAsPrefabAsset(gameObject, prefabPath);
                 return prefab;
             }
             finally
@@ -193,6 +201,8 @@ namespace MP.Editor
                 gameObject.AddComponent<HealthComponent>();
                 CastleEntity castle = gameObject.AddComponent<CastleEntity>();
                 TargetableComponent targetable = gameObject.AddComponent<TargetableComponent>();
+                CombatComponent combat = gameObject.AddComponent<CombatComponent>();
+                CombatRangeIndicator rangeIndicator = gameObject.AddComponent<CombatRangeIndicator>();
                 gameObject.AddComponent<NetworkHealthState>();
                 gameObject.AddComponent<WorldHealthLabel>();
                 EnsureSpriteRenderer(gameObject, CastleSpritePath, Color.gray, 0, new Vector3(1.5f, 1.5f, 1f));
@@ -201,6 +211,8 @@ namespace MP.Editor
                 AssignBaseStats(stats, castleStats);
                 AssignCastleTeam(castle, TeamId.Player);
                 AssignTargetableTeam(targetable, TeamId.Player);
+                AssignCombatTeam(combat, TeamId.Player);
+                AssignRangeIndicator(rangeIndicator, true, false);
 
                 prefab = PrefabUtility.SaveAsPrefabAsset(gameObject, CastlePrefabPath);
                 return prefab;
@@ -247,7 +259,7 @@ namespace MP.Editor
                 gameObject.AddComponent<InventoryComponent>();
                 gameObject.AddComponent<EquipComponent>();
                 gameObject.AddComponent<PlayerSaveComponent>();
-                gameObject.AddComponent<RespawnComponent>();
+                RespawnComponent respawn = gameObject.AddComponent<RespawnComponent>();
                 EnsureSpriteRenderer(gameObject, PlayerSpritePath, Color.blue, 1, Vector3.one * 0.7f);
                 EnsureBoxCollider(gameObject, Vector2.one);
 
@@ -258,6 +270,7 @@ namespace MP.Editor
                 AssignCombatTeam(combat, TeamId.Player);
                 AssignJobSelector(jobSelector, jobs);
                 AssignRangeIndicator(rangeIndicator, true, true);
+                AssignPlayerRespawn(respawn);
 
                 prefab = PrefabUtility.SaveAsPrefabAsset(gameObject, PlayerPrefabPath);
                 return prefab;
@@ -292,6 +305,7 @@ namespace MP.Editor
             GetOrAdd<NetworkPlayerSpawnOffset>(root);
             GetOrAdd<PlayerJobComponent>(root);
             NetworkPlayerJobSelector jobSelector = GetOrAdd<NetworkPlayerJobSelector>(root);
+            RespawnComponent respawn = GetOrAdd<RespawnComponent>(root);
 
             AssignBaseStats(stats, playerStats);
             AssignPlayerTeam(player, TeamId.Player);
@@ -300,13 +314,14 @@ namespace MP.Editor
             AssignCombatTeam(combat, TeamId.Player);
             AssignJobSelector(jobSelector, jobs);
             AssignRangeIndicator(rangeIndicator, true, true);
+            AssignPlayerRespawn(respawn);
             EnsureBoxCollider(root, Vector2.one);
 
             PrefabUtility.SaveAsPrefabAsset(root, path);
             PrefabUtility.UnloadPrefabContents(root);
         }
 
-        private static void AssignEnemyPrefabReferences(GameObject prefab, EntityStatsDefinition enemyStats)
+        private static void AssignEnemyPrefabReferences(GameObject prefab, EntityStatsDefinition enemyStats, string spritePath, Color color, Vector3 scale)
         {
             string path = AssetDatabase.GetAssetPath(prefab);
             GameObject root = PrefabUtility.LoadPrefabContents(path);
@@ -327,7 +342,7 @@ namespace MP.Editor
             CombatRangeIndicator rangeIndicator = GetOrAdd<CombatRangeIndicator>(root);
             GetOrAdd<DespawnOnDeathComponent>(root);
             GetOrAdd<ItemDropComponent>(root);
-            EnsureSpriteRenderer(root, EnemySpritePath, Color.red, 1, Vector3.one * 0.65f);
+            EnsureSpriteRenderer(root, spritePath, color, 1, scale);
             EnsureBoxCollider(root, Vector2.one);
 
             AssignBaseStats(stats, enemyStats);
@@ -349,6 +364,8 @@ namespace MP.Editor
             GetOrAdd<HealthComponent>(root);
             CastleEntity castle = GetOrAdd<CastleEntity>(root);
             TargetableComponent targetable = GetOrAdd<TargetableComponent>(root);
+            CombatComponent combat = GetOrAdd<CombatComponent>(root);
+            CombatRangeIndicator rangeIndicator = GetOrAdd<CombatRangeIndicator>(root);
             GetOrAdd<NetworkHealthState>(root);
             GetOrAdd<WorldHealthLabel>(root);
             EnsureSpriteRenderer(root, CastleSpritePath, Color.gray, 0, new Vector3(1.5f, 1.5f, 1f));
@@ -357,6 +374,8 @@ namespace MP.Editor
             AssignBaseStats(stats, castleStats);
             AssignCastleTeam(castle, TeamId.Player);
             AssignTargetableTeam(targetable, TeamId.Player);
+            AssignCombatTeam(combat, TeamId.Player);
+            AssignRangeIndicator(rangeIndicator, true, false);
 
             PrefabUtility.SaveAsPrefabAsset(root, path);
             PrefabUtility.UnloadPrefabContents(root);
@@ -415,7 +434,7 @@ namespace MP.Editor
             AssignSpawner(spawner, enemyPrefab, spawnPoints);
         }
 
-        private static void CreateNetworkManager(GameObject playerPrefab, GameObject castlePrefab, GameObject enemyPrefab, GameObject projectilePrefab)
+        private static void CreateNetworkManager(GameObject playerPrefab, GameObject castlePrefab, GameObject enemyPrefab, GameObject bossPrefab, GameObject projectilePrefab)
         {
             var gameObject = new GameObject("NetworkManager");
             NetworkManager networkManager = gameObject.AddComponent<NetworkManager>();
@@ -425,14 +444,16 @@ namespace MP.Editor
             networkManager.NetworkConfig.NetworkTransport = transport;
             networkManager.NetworkConfig.PlayerPrefab = playerPrefab;
             networkManager.NetworkConfig.ForceSamePrefabs = false;
-            AssignNetworkPrefabs(bootstrap, castlePrefab, enemyPrefab, projectilePrefab);
+            AssignNetworkPrefabs(bootstrap, castlePrefab, enemyPrefab, bossPrefab, projectilePrefab);
         }
 
-        private static void CreateSimulationRoot()
+        private static void CreateSimulationRoot(StageDefinition stageDefinition)
         {
             var gameObject = new GameObject("NetworkSimulationRoot");
+            StageFlowController stageFlow = gameObject.AddComponent<StageFlowController>();
             gameObject.AddComponent<SimulationAuthority>();
             gameObject.AddComponent<CombatSimulationRunner>();
+            AssignStageFlow(stageFlow, stageDefinition);
         }
 
         private static void CreateHud()
@@ -521,7 +542,7 @@ namespace MP.Editor
                 new StatEntry(StatId.AutoAttackRange, 2.5f, new StatBounds(0f, 30f)),
                 new StatEntry(StatId.ProjectileRange, 5f, new StatBounds(0f, 30f)),
                 new StatEntry(StatId.MoveSpeed, 5f, new StatBounds(0f, 20f)),
-                new StatEntry(StatId.RespawnDelay, 3f, new StatBounds(0f, 60f))
+                new StatEntry(StatId.RespawnDelay, 10f, new StatBounds(0f, 60f))
             };
         }
 
@@ -540,15 +561,30 @@ namespace MP.Editor
             };
         }
 
+        private static StatEntry[] CreateBossBaseStats()
+        {
+            return new[]
+            {
+                new StatEntry(StatId.MaxHealth, 220f, new StatBounds(1f, 3000f)),
+                new StatEntry(StatId.Defense, 120f, new StatBounds(0f, 1000f)),
+                new StatEntry(StatId.AttackPower, 16f, new StatBounds(0f, 1000f)),
+                new StatEntry(StatId.AttackSpeed, 0.55f, new StatBounds(0f, 20f)),
+                new StatEntry(StatId.AutoAttackRange, 1.6f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.ProjectileRange, 0f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.MoveSpeed, 1.1f, new StatBounds(0f, 20f)),
+                new StatEntry(StatId.RespawnDelay, 3f, new StatBounds(0f, 60f))
+            };
+        }
+
         private static StatEntry[] CreateCastleBaseStats()
         {
             return new[]
             {
                 new StatEntry(StatId.MaxHealth, 500f, new StatBounds(1f, 5000f)),
                 new StatEntry(StatId.Defense, 120f, new StatBounds(0f, 1000f)),
-                new StatEntry(StatId.AttackPower, 0f, new StatBounds(0f, 1000f)),
-                new StatEntry(StatId.AttackSpeed, 0f, new StatBounds(0f, 20f)),
-                new StatEntry(StatId.AutoAttackRange, 0f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.AttackPower, 12f, new StatBounds(0f, 1000f)),
+                new StatEntry(StatId.AttackSpeed, 0.8f, new StatBounds(0f, 20f)),
+                new StatEntry(StatId.AutoAttackRange, 4f, new StatBounds(0f, 30f)),
                 new StatEntry(StatId.ProjectileRange, 0f, new StatBounds(0f, 30f)),
                 new StatEntry(StatId.MoveSpeed, 0f, new StatBounds(0f, 20f)),
                 new StatEntry(StatId.RespawnDelay, 0f, new StatBounds(0f, 60f))
@@ -581,11 +617,75 @@ namespace MP.Editor
             return definition;
         }
 
+        private static StageDefinition EnsureStageDefinition(GameObject enemyPrefab, GameObject bossPrefab)
+        {
+            StageDefinition definition = AssetDatabase.LoadAssetAtPath<StageDefinition>(StageDefinitionPath);
+            if (definition == null)
+            {
+                definition = ScriptableObject.CreateInstance<StageDefinition>();
+                AssetDatabase.CreateAsset(definition, StageDefinitionPath);
+            }
+
+            var serializedDefinition = new SerializedObject(definition);
+            serializedDefinition.FindProperty("stageId").stringValue = "prototype_stage";
+            serializedDefinition.FindProperty("displayName").stringValue = "Prototype Stage";
+            serializedDefinition.FindProperty("startingGold").intValue = 0;
+            serializedDefinition.FindProperty("startingExperience").intValue = 0;
+
+            SerializedProperty waves = serializedDefinition.FindProperty("waves");
+            waves.arraySize = 4;
+            AssignWave(waves.GetArrayElementAtIndex(0), "Wave 1", 25f, 18f, 2.5f, 10, false, null, 0f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(1), "Mid Boss Wave", 35f, 24f, 1.8f, 14, true, bossPrefab, 8f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(2), "Wave 3", 30f, 22f, 1.6f, 16, false, null, 0f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(3), "Final Boss Wave", 45f, 30f, 1.4f, 18, true, bossPrefab, 10f, enemyPrefab);
+
+            serializedDefinition.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(definition);
+            return definition;
+        }
+
+        private static void AssignWave(
+            SerializedProperty wave,
+            string displayName,
+            float waveDuration,
+            float spawnDuration,
+            float spawnInterval,
+            int maxAliveEnemies,
+            bool bossWave,
+            GameObject bossPrefab,
+            float bossSpawnTime,
+            GameObject enemyPrefab)
+        {
+            wave.FindPropertyRelative("displayName").stringValue = displayName;
+            wave.FindPropertyRelative("waveDuration").floatValue = waveDuration;
+            wave.FindPropertyRelative("spawnDuration").floatValue = spawnDuration;
+            wave.FindPropertyRelative("spawnInterval").floatValue = spawnInterval;
+            wave.FindPropertyRelative("maxAliveEnemies").intValue = maxAliveEnemies;
+            wave.FindPropertyRelative("bossWave").boolValue = bossWave;
+            wave.FindPropertyRelative("bossPrefab").objectReferenceValue = bossPrefab;
+            wave.FindPropertyRelative("bossSpawnTime").floatValue = bossSpawnTime;
+
+            SerializedProperty spawnEntries = wave.FindPropertyRelative("spawnEntries");
+            spawnEntries.arraySize = 1;
+            SerializedProperty entry = spawnEntries.GetArrayElementAtIndex(0);
+            entry.FindPropertyRelative("enemyPrefab").objectReferenceValue = enemyPrefab;
+            entry.FindPropertyRelative("weight").floatValue = 1f;
+        }
+
         private static void AssignBaseStats(StatsComponent statsComponent, EntityStatsDefinition stats)
         {
             var serializedStats = new SerializedObject(statsComponent);
             serializedStats.FindProperty("baseStats").objectReferenceValue = stats;
             serializedStats.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignStageFlow(StageFlowController stageFlow, StageDefinition stageDefinition)
+        {
+            var serializedStageFlow = new SerializedObject(stageFlow);
+            serializedStageFlow.FindProperty("stageDefinition").objectReferenceValue = stageDefinition;
+            serializedStageFlow.FindProperty("autoStart").boolValue = true;
+            serializedStageFlow.FindProperty("playerStartRadius").floatValue = 3f;
+            serializedStageFlow.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void AssignProjectileLauncher(NetworkProjectileLauncher launcher, TeamId team, GameObject projectilePrefab)
@@ -646,6 +746,15 @@ namespace MP.Editor
             serializedSelector.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        private static void AssignPlayerRespawn(RespawnComponent respawn)
+        {
+            var serializedRespawn = new SerializedObject(respawn);
+            serializedRespawn.FindProperty("autoRespawnOnDeath").boolValue = true;
+            serializedRespawn.FindProperty("respawnNearCastle").boolValue = true;
+            serializedRespawn.FindProperty("castleRespawnRadius").floatValue = 3f;
+            serializedRespawn.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static void AssignNetworkPrefabs(NetworkTestBootstrap bootstrap, params GameObject[] prefabs)
         {
             var serializedBootstrap = new SerializedObject(bootstrap);
@@ -681,7 +790,7 @@ namespace MP.Editor
             serializedSpawner.FindProperty("targetCastle").objectReferenceValue = null;
             serializedSpawner.FindProperty("spawnInterval").floatValue = 2.5f;
             serializedSpawner.FindProperty("maxAliveEnemies").intValue = 16;
-            serializedSpawner.FindProperty("spawnOnStart").boolValue = true;
+            serializedSpawner.FindProperty("spawnOnStart").boolValue = false;
 
             SerializedProperty spawnPointsProperty = serializedSpawner.FindProperty("spawnPoints");
             spawnPointsProperty.arraySize = spawnPoints.Length;

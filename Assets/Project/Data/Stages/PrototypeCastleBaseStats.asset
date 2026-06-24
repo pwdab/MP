@@ -24,17 +24,17 @@ MonoBehaviour:
       minimum: 0
       maximum: 1000
   - statId: 1
-    baseValue: 0
+    baseValue: 12
     bounds:
       minimum: 0
       maximum: 1000
   - statId: 2
-    baseValue: 0
+    baseValue: 0.8
     bounds:
       minimum: 0
       maximum: 20
   - statId: 3
-    baseValue: 0
+    baseValue: 4
     bounds:
       minimum: 0
       maximum: 30

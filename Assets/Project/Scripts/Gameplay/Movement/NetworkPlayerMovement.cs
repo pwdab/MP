@@ -1,4 +1,5 @@
 using MP.Gameplay.Entity;
+using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
 using Unity.Netcode;
 using Unity.Netcode.Components;
@@ -58,6 +59,16 @@ namespace MP.Gameplay.Movement
                 return;
             }
 
+            if (!StageSimulationGate.CanAcceptPlayerInput())
+            {
+                if (!IsServer)
+                {
+                    SnapPredictionIfTooFar();
+                }
+
+                return;
+            }
+
             if (!characterState.CanMove)
             {
                 if (!IsServer)
@@ -95,6 +106,11 @@ namespace MP.Gameplay.Movement
 
         private void MoveServer(Vector2 input, float deltaTime)
         {
+            if (!StageSimulationGate.CanAcceptPlayerInput())
+            {
+                return;
+            }
+
             if (!characterState.CanMove)
             {
                 return;

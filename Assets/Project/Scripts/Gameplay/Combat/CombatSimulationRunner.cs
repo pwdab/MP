@@ -1,5 +1,6 @@
 using MP.Network;
 using MP.Gameplay.Movement;
+using MP.Gameplay.Stages;
 using UnityEngine;
 
 namespace MP.Gameplay.Combat
@@ -30,11 +31,21 @@ namespace MP.Gameplay.Combat
                 return;
             }
 
+            if (!StageSimulationGate.CanRunCombatSimulation())
+            {
+                return;
+            }
+
             Tick(Time.deltaTime);
         }
 
         public void Tick(float deltaTime)
         {
+            if (!StageSimulationGate.CanRunCombatSimulation())
+            {
+                return;
+            }
+
             if (combatants == null || combatants.Length == 0)
             {
                 TickDynamicEnemyMovers(deltaTime);

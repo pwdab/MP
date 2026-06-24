@@ -10,46 +10,46 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4372fbf3c88441a979beee5d9239dbf, type: 3}
-  m_Name: PrototypePlayerBaseStats
+  m_Name: PrototypeBossBaseStats
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stats.EntityStatsDefinition
   stats:
   - statId: 0
-    baseValue: 100
+    baseValue: 220
     bounds:
       minimum: 1
-      maximum: 1000
+      maximum: 3000
   - statId: 7
-    baseValue: 100
+    baseValue: 120
     bounds:
       minimum: 0
       maximum: 1000
   - statId: 1
-    baseValue: 10
+    baseValue: 16
     bounds:
       minimum: 0
       maximum: 1000
   - statId: 2
-    baseValue: 1
+    baseValue: 0.55
     bounds:
       minimum: 0
       maximum: 20
   - statId: 3
-    baseValue: 2.5
+    baseValue: 1.6
     bounds:
       minimum: 0
       maximum: 30
   - statId: 4
-    baseValue: 5
+    baseValue: 0
     bounds:
       minimum: 0
       maximum: 30
   - statId: 5
-    baseValue: 5
+    baseValue: 1.1
     bounds:
       minimum: 0
       maximum: 20
   - statId: 6
-    baseValue: 10
+    baseValue: 3
     bounds:
       minimum: 0
       maximum: 60

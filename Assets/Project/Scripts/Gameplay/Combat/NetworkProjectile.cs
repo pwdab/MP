@@ -1,5 +1,6 @@
 using MP.Gameplay.Damage;
 using MP.Gameplay.Entity;
+using MP.Gameplay.Stages;
 using MP.Network;
 using Unity.Netcode;
 using Unity.Netcode.Components;
@@ -87,6 +88,12 @@ namespace MP.Gameplay.Combat
         {
             if (!initialized)
             {
+                return;
+            }
+
+            if (!StageSimulationGate.CanRunCombatSimulation())
+            {
+                StopClientVisualOrDespawnServer();
                 return;
             }
 

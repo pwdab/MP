@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f28a4020f949dbc40a03e6d16ae27d96, type: 3}
+  m_Name: PrototypeStage
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stages.StageDefinition
+  stageId: prototype_stage
+  displayName: Prototype Stage
+  startingGold: 0
+  startingExperience: 0
+  waves:
+  - displayName: Wave 1
+    waveDuration: 25
+    spawnDuration: 18
+    spawnInterval: 2.5
+    maxAliveEnemies: 10
+    bossWave: 0
+    bossPrefab: {fileID: 0}
+    bossSpawnTime: 0
+    spawnEntries:
+    - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
+      weight: 1
+  - displayName: Mid Boss Wave
+    waveDuration: 35
+    spawnDuration: 24
+    spawnInterval: 1.8
+    maxAliveEnemies: 14
+    bossWave: 1
+    bossPrefab: {fileID: 7282609900362273682, guid: b7b934616ea905e4285b68ddb20c0b07, type: 3}
+    bossSpawnTime: 8
+    spawnEntries:
+    - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
+      weight: 1
+  - displayName: Wave 3
+    waveDuration: 30
+    spawnDuration: 22
+    spawnInterval: 1.6
+    maxAliveEnemies: 16
+    bossWave: 0
+    bossPrefab: {fileID: 0}
+    bossSpawnTime: 0
+    spawnEntries:
+    - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
+      weight: 1
+  - displayName: Final Boss Wave
+    waveDuration: 45
+    spawnDuration: 30
+    spawnInterval: 1.4
+    maxAliveEnemies: 18
+    bossWave: 1
+    bossPrefab: {fileID: 7282609900362273682, guid: b7b934616ea905e4285b68ddb20c0b07, type: 3}
+    bossSpawnTime: 10
+    spawnEntries:
+    - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
+      weight: 1

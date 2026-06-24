@@ -1,4 +1,5 @@
 using MP.Gameplay.Entity;
+using MP.Gameplay.Stages;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -67,7 +68,7 @@ namespace MP.Network
                 return;
             }
 
-            if (WasRevivePlayerPressedThisFrame() && networkManager.IsListening)
+            if (WasRevivePlayerPressedThisFrame() && networkManager.IsListening && StageSimulationGate.CanAcceptPlayerInput())
             {
                 RequestReviveLocalPlayer(networkManager);
             }

@@ -1,4 +1,5 @@
 using MP.Gameplay.Entity;
+using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
 using Unity.Netcode;
 using UnityEngine;
@@ -32,7 +33,7 @@ namespace MP.Gameplay.Combat
 
         private void Update()
         {
-            if (!IsOwner || !characterState.CanAttack || !WasFirePressedThisFrame())
+            if (!IsOwner || !StageSimulationGate.CanAcceptPlayerInput() || !characterState.CanAttack || !WasFirePressedThisFrame())
             {
                 return;
             }
@@ -56,6 +57,11 @@ namespace MP.Gameplay.Combat
 
         private void FireServer(Vector2 aimWorldPosition)
         {
+            if (!StageSimulationGate.CanAcceptPlayerInput())
+            {
+                return;
+            }
+
             if (projectilePrefab == null || !characterState.CanAttack || !IsFinite(aimWorldPosition))
             {
                 return;

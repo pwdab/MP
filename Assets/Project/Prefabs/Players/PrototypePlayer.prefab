@@ -430,7 +430,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d660df66fcd34996abc4b9ee3767f3cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.RespawnComponent
-  autoRespawnOnDeath: 0
+  autoRespawnOnDeath: 1
+  respawnNearCastle: 1
+  castleRespawnRadius: 3
 --- !u!212 &6766509355509272436
 SpriteRenderer:
   serializedVersion: 2
