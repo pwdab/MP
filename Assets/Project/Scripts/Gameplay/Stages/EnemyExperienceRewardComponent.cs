@@ -1,6 +1,7 @@
 using MP.Gameplay.Entity;
 using MP.Network;
 using MP.Progression.Level;
+using MP.UI;
 using UnityEngine;
 
 namespace MP.Gameplay.Stages
@@ -46,6 +47,7 @@ namespace MP.Gameplay.Stages
             }
 
             progression.AddExperience(experienceAmount);
+            FloatingWorldText.Show(transform.position + Vector3.up, $"+{experienceAmount} EXP", new Color(0.35f, 0.8f, 1f, 1f));
         }
 
         private bool TryGetKillerProgression(out PlayerProgressionComponent progression)

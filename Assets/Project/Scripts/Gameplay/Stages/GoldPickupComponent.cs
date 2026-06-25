@@ -1,5 +1,6 @@
 using MP.Gameplay.Entity;
 using MP.Network;
+using MP.UI;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -42,6 +43,7 @@ namespace MP.Gameplay.Stages
 
             StageFlowController stageFlow = FindFirstObjectByType<StageFlowController>();
             stageFlow?.AddGold(GoldAmount);
+            FloatingWorldText.Show(transform.position + Vector3.up * 0.5f, $"+{GoldAmount} Gold", new Color(1f, 0.82f, 0.18f, 1f));
             DespawnOrDestroy();
         }
 

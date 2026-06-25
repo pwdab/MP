@@ -193,6 +193,7 @@ namespace MP.Editor
                 TargetableComponent targetable = gameObject.AddComponent<TargetableComponent>();
                 gameObject.AddComponent<NetworkHealthState>();
                 gameObject.AddComponent<WorldHealthLabel>();
+                gameObject.AddComponent<WorldCombatFeedbackComponent>();
                 gameObject.AddComponent<EnemyTargetingComponent>();
                 EnemyMoveToCastleComponent enemyMovement = gameObject.AddComponent<EnemyMoveToCastleComponent>();
                 gameObject.AddComponent<EnemyCastleAttackComponent>();
@@ -243,6 +244,7 @@ namespace MP.Editor
                 CombatRangeIndicator rangeIndicator = gameObject.AddComponent<CombatRangeIndicator>();
                 gameObject.AddComponent<NetworkHealthState>();
                 gameObject.AddComponent<WorldHealthLabel>();
+                gameObject.AddComponent<WorldCombatFeedbackComponent>();
                 EnsureSpriteRenderer(gameObject, CastleSpritePath, Color.gray, 0, new Vector3(1.5f, 1.5f, 1f));
                 EnsureBoxCollider(gameObject, Vector2.one);
 
@@ -283,6 +285,7 @@ namespace MP.Editor
                 gameObject.AddComponent<NetworkHealthState>();
                 gameObject.AddComponent<NetworkTestCommands>();
                 gameObject.AddComponent<WorldHealthLabel>();
+                gameObject.AddComponent<WorldCombatFeedbackComponent>();
                 gameObject.AddComponent<NetworkPlayerMovement>();
                 AutoProjectileAttackComponent projectileAttack = gameObject.AddComponent<AutoProjectileAttackComponent>();
                 NetworkProjectileLauncher launcher = gameObject.AddComponent<NetworkProjectileLauncher>();
@@ -342,6 +345,7 @@ namespace MP.Editor
             GetOrAdd<NetworkHealthState>(root);
             GetOrAdd<NetworkTestCommands>(root);
             GetOrAdd<WorldHealthLabel>(root);
+            GetOrAdd<WorldCombatFeedbackComponent>(root);
             GetOrAdd<NetworkPlayerMovement>(root);
             NetworkProjectileLauncher launcher = GetOrAdd<NetworkProjectileLauncher>(root);
             AutoProjectileAttackComponent projectileAttack = GetOrAdd<AutoProjectileAttackComponent>(root);
@@ -390,6 +394,7 @@ namespace MP.Editor
             TargetableComponent targetable = GetOrAdd<TargetableComponent>(root);
             GetOrAdd<NetworkHealthState>(root);
             GetOrAdd<WorldHealthLabel>(root);
+            GetOrAdd<WorldCombatFeedbackComponent>(root);
             GetOrAdd<EnemyTargetingComponent>(root);
             EnemyMoveToCastleComponent enemyMovement = GetOrAdd<EnemyMoveToCastleComponent>(root);
             GetOrAdd<EnemyCastleAttackComponent>(root);
@@ -428,6 +433,7 @@ namespace MP.Editor
             CombatRangeIndicator rangeIndicator = GetOrAdd<CombatRangeIndicator>(root);
             GetOrAdd<NetworkHealthState>(root);
             GetOrAdd<WorldHealthLabel>(root);
+            GetOrAdd<WorldCombatFeedbackComponent>(root);
             EnsureSpriteRenderer(root, CastleSpritePath, Color.gray, 0, new Vector3(1.5f, 1.5f, 1f));
             EnsureBoxCollider(root, Vector2.one);
 

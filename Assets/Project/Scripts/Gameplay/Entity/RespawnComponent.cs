@@ -20,6 +20,10 @@ namespace MP.Gameplay.Entity
         private CharacterStateComponent characterState;
         private PlayerActiveSkillComponent activeSkill;
         private Coroutine respawnCoroutine;
+        private float remainingRespawnTime;
+
+        public bool IsWaitingForRespawn => respawnCoroutine != null;
+        public float RemainingRespawnTime => Mathf.Max(0f, remainingRespawnTime);
 
         private void Awake()
         {
@@ -48,6 +52,7 @@ namespace MP.Gameplay.Entity
             {
                 StopCoroutine(respawnCoroutine);
                 respawnCoroutine = null;
+                remainingRespawnTime = 0f;
             }
         }
 
@@ -73,6 +78,7 @@ namespace MP.Gameplay.Entity
             health.RestoreToFullHealth();
             characterState?.ApplyRespawnState();
             activeSkill?.ResetCooldownServer();
+            remainingRespawnTime = 0f;
             // TODO: Clear buffs and status effects when those systems are implemented.
         }
 
@@ -88,18 +94,19 @@ namespace MP.Gameplay.Entity
 
         private IEnumerator RespawnAfterDelay()
         {
-            float remainingDelay = stats.RespawnDelay;
-            while (remainingDelay > 0f)
+            remainingRespawnTime = stats.RespawnDelay;
+            while (remainingRespawnTime > 0f)
             {
                 if (StageSimulationGate.CanRunCombatSimulation())
                 {
-                    remainingDelay -= Time.deltaTime;
+                    remainingRespawnTime -= Time.deltaTime;
                 }
 
                 yield return null;
             }
 
             respawnCoroutine = null;
+            remainingRespawnTime = 0f;
             RespawnServer();
         }
 
@@ -112,6 +119,7 @@ namespace MP.Gameplay.Entity
 
             StopCoroutine(respawnCoroutine);
             respawnCoroutine = null;
+            remainingRespawnTime = 0f;
         }
 
         private void MoveToRespawnPosition()

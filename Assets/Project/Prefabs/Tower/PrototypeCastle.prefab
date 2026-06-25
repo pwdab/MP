@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 6255221127453541303}
   - component: {fileID: 1729592826517946230}
   - component: {fileID: 284943807225442801}
+  - component: {fileID: 1897369095458694465}
   m_Layer: 0
   m_Name: PrototypeCastle
   m_TagString: Untagged
@@ -340,3 +341,21 @@ MonoBehaviour:
   manualProjectileColor: {r: 0.15, g: 1, b: 1, a: 1}
   activeSkillColor: {r: 0.85, g: 0.25, b: 1, a: 0.95}
   sortingOrder: 50
+--- !u!114 &1897369095458694465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8049788492932777246}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cdad92381624c64b22eaa7005f22a34, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.UI.WorldCombatFeedbackComponent
+  textOffset: {x: 0, y: 1, z: 0}
+  damageTextColor: {r: 1, g: 0.25, b: 0.2, a: 1}
+  healTextColor: {r: 0.25, g: 1, b: 0.35, a: 1}
+  deathTextColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+  flashColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  flashDuration: 0.12

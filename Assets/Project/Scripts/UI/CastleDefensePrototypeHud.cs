@@ -19,6 +19,7 @@ namespace MP.UI
         private HealthComponent localHealth;
         private PlayerProgressionComponent localProgression;
         private PlayerActiveSkillComponent localActiveSkill;
+        private RespawnComponent localRespawn;
         private Vector2 scrollPosition;
 
         private static readonly object CastleUpgradeSource = new();
@@ -33,8 +34,10 @@ namespace MP.UI
 
             GUILayout.Label("Castle Defense Prototype");
             DrawNetworkState();
+            DrawObjectiveState();
             DrawStageState();
             DrawCastleState();
+            DrawBossState();
             DrawLocalPlayerState();
             DrawEnemyState();
             DrawResultState();
@@ -76,6 +79,7 @@ namespace MP.UI
             {
                 GUILayout.Label($"Wave: {stageFlow.CurrentWaveNumber}/{stageFlow.WaveCount} {stageFlow.CurrentWave.DisplayName}");
                 GUILayout.Label($"Wave Time: {stageFlow.CurrentWaveRemainingTime:0.0}s");
+                GUILayout.Label($"Spawn: {stageFlow.CurrentWaveState}");
                 if (stageFlow.CurrentWave.BossWave)
                 {
                     GUILayout.Label($"Bosses: {EnemySpawner.CountAliveBosses(stageFlow.CurrentWaveIndex)}");
@@ -84,6 +88,10 @@ namespace MP.UI
             else
             {
                 GUILayout.Label($"Wave: -/{stageFlow.WaveCount}");
+                if (stageFlow.CurrentStageState == StageState.Rest)
+                {
+                    GUILayout.Label($"Next: Wave {stageFlow.CurrentWaveNumber + 1}/{stageFlow.WaveCount}");
+                }
             }
 
             GUILayout.Label($"Gold: {stageFlow.CurrentGold}  Player EXP: {GetLocalPlayerExperienceText()}");
@@ -97,6 +105,29 @@ namespace MP.UI
                     stageFlow.ContinueFromRest();
                 }
             }
+        }
+
+        private void DrawObjectiveState()
+        {
+            stageFlow ??= FindFirstObjectByType<StageFlowController>();
+            if (stageFlow == null)
+            {
+                return;
+            }
+
+            if (stageFlow.CurrentStageState == StageState.Rest)
+            {
+                GUILayout.Label("Objective: Upgrade, then start the next wave.");
+                return;
+            }
+
+            if (stageFlow.CurrentWave != null && stageFlow.CurrentWave.BossWave)
+            {
+                GUILayout.Label("Objective: Defeat the boss before the castle falls.");
+                return;
+            }
+
+            GUILayout.Label("Objective: Defend the castle.");
         }
 
         private void DrawCastleState()
@@ -117,6 +148,28 @@ namespace MP.UI
             GUILayout.Label($"Castle HP: {currentHealth:0}/{castle.Health.MaxHealth:0}");
         }
 
+        private void DrawBossState()
+        {
+            WaveEnemyComponent[] waveEnemies = FindObjectsByType<WaveEnemyComponent>(FindObjectsSortMode.None);
+            for (int i = 0; i < waveEnemies.Length; i++)
+            {
+                WaveEnemyComponent enemy = waveEnemies[i];
+                if (enemy == null || !enemy.IsBoss || !enemy.TryGetComponent(out HealthComponent health) || health.IsDead)
+                {
+                    continue;
+                }
+
+                float currentHealth = health.CurrentHealth;
+                if (enemy.TryGetComponent(out NetworkHealthState networkHealth))
+                {
+                    currentHealth = networkHealth.CurrentHealth;
+                }
+
+                GUILayout.Label($"Boss HP: {currentHealth:0}/{health.MaxHealth:0}");
+                return;
+            }
+        }
+
         private void DrawLocalPlayerState()
         {
             FindLocalPlayerComponents();
@@ -129,6 +182,16 @@ namespace MP.UI
             string jobName = localJobSelector.SelectedJob != null ? localJobSelector.SelectedJob.DisplayName : "None";
             string hpText = localHealth != null ? $"{localHealth.CurrentHealth:0}/{localHealth.MaxHealth:0}" : "missing";
             GUILayout.Label($"Player HP: {hpText}");
+            if (localHealth != null && localHealth.IsDead)
+            {
+                string respawnText = localRespawn != null && localRespawn.IsWaitingForRespawn ? $"{localRespawn.RemainingRespawnTime:0.0}s" : "waiting";
+                GUILayout.Label($"Player State: DEAD | Respawn: {respawnText}");
+            }
+            else if (localRespawn != null && localRespawn.IsWaitingForRespawn)
+            {
+                GUILayout.Label($"Respawn: {localRespawn.RemainingRespawnTime:0.0}s");
+            }
+
             if (localActiveSkill != null)
             {
                 string cooldownText = localActiveSkill.IsReady ? "Ready" : $"{localActiveSkill.RemainingCooldown:0.0}s";
@@ -190,6 +253,7 @@ namespace MP.UI
                     localHealth = selector.GetComponent<HealthComponent>();
                     localProgression = selector.GetComponent<PlayerProgressionComponent>();
                     localActiveSkill = selector.GetComponent<PlayerActiveSkillComponent>();
+                    localRespawn = selector.GetComponent<RespawnComponent>();
                     return;
                 }
             }

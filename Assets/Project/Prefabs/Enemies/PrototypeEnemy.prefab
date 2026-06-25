@@ -29,6 +29,7 @@ GameObject:
   - component: {fileID: 548911898620328797}
   - component: {fileID: 572225328379187352}
   - component: {fileID: 6195089509870504608}
+  - component: {fileID: 6197698788766275866}
   m_Layer: 0
   m_Name: PrototypeEnemy
   m_TagString: Untagged
@@ -455,3 +456,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stages.EnemyExperienceRewardComponent
   experienceAmount: 1
+--- !u!114 &6197698788766275866
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8977295950724716183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cdad92381624c64b22eaa7005f22a34, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.UI.WorldCombatFeedbackComponent
+  textOffset: {x: 0, y: 1, z: 0}
+  damageTextColor: {r: 1, g: 0.25, b: 0.2, a: 1}
+  healTextColor: {r: 0.25, g: 1, b: 0.35, a: 1}
+  deathTextColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+  flashColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  flashDuration: 0.12
