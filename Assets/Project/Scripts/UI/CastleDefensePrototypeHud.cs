@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using MP.Gameplay.Entity;
 using MP.Gameplay.Stages;
+using MP.Gameplay.Combat;
 using MP.Network;
+using MP.Progression.Level;
 using MP.Progression.Jobs;
 using Unity.Netcode;
 using UnityEngine;
@@ -14,6 +16,8 @@ namespace MP.UI
         private StageFlowController stageFlow;
         private NetworkPlayerJobSelector localJobSelector;
         private HealthComponent localHealth;
+        private PlayerProgressionComponent localProgression;
+        private PlayerActiveSkillComponent localActiveSkill;
         private Vector2 scrollPosition;
 
         private void OnGUI()
@@ -37,6 +41,8 @@ namespace MP.UI
 
             GUILayout.EndScrollView();
             GUILayout.EndArea();
+
+            DrawDebugLegend();
         }
 
         private void DrawNetworkState()
@@ -75,7 +81,7 @@ namespace MP.UI
                 GUILayout.Label($"Wave: -/{stageFlow.WaveCount}");
             }
 
-            GUILayout.Label($"Gold: {stageFlow.CurrentGold}  EXP: {stageFlow.CurrentExperience}");
+            GUILayout.Label($"Gold: {stageFlow.CurrentGold}  Player EXP: {GetLocalPlayerExperienceText()}");
 
             if (stageFlow.CurrentStageState == StageState.Rest && NetworkContext.HasServerAuthority())
             {
@@ -116,6 +122,12 @@ namespace MP.UI
             string jobName = localJobSelector.SelectedJob != null ? localJobSelector.SelectedJob.DisplayName : "None";
             string hpText = localHealth != null ? $"{localHealth.CurrentHealth:0}/{localHealth.MaxHealth:0}" : "missing";
             GUILayout.Label($"Player HP: {hpText}");
+            if (localActiveSkill != null)
+            {
+                string cooldownText = localActiveSkill.IsReady ? "Ready" : $"{localActiveSkill.RemainingCooldown:0.0}s";
+                GUILayout.Label($"Space Skill: {cooldownText}");
+            }
+
             GUILayout.Label($"Job: {jobName}");
 
             IReadOnlyList<JobDefinition> jobs = localJobSelector.AvailableJobs;
@@ -163,9 +175,41 @@ namespace MP.UI
                 {
                     localJobSelector = selector;
                     localHealth = selector.GetComponent<HealthComponent>();
+                    localProgression = selector.GetComponent<PlayerProgressionComponent>();
+                    localActiveSkill = selector.GetComponent<PlayerActiveSkillComponent>();
                     return;
                 }
             }
+        }
+
+        private string GetLocalPlayerExperienceText()
+        {
+            FindLocalPlayerComponents();
+            return localProgression != null ? localProgression.Experience.ToString() : "-";
+        }
+
+        private void DrawDebugLegend()
+        {
+            const float width = 260f;
+            GUILayout.BeginArea(new Rect(Screen.width - width - 10f, 10f, width, 170f), GUI.skin.box);
+            GUILayout.Label("Debug Draw Legend");
+            DrawLegendLine(new Color(1f, 0.85f, 0.25f, 1f), "Auto Attack Range");
+            DrawLegendLine(new Color(0.1f, 0.55f, 1f, 1f), "AutoProjectileRange");
+            DrawLegendLine(new Color(0.15f, 1f, 1f, 1f), "ManualProjectileRange");
+            DrawLegendLine(new Color(1f, 0.25f, 0.85f, 1f), "Space Active Skill Range");
+            DrawLegendLine(new Color(0.2f, 1f, 0.35f, 1f), "Move Direction");
+            GUILayout.EndArea();
+        }
+
+        private static void DrawLegendLine(Color color, string label)
+        {
+            Color previousColor = GUI.color;
+            GUILayout.BeginHorizontal();
+            GUI.color = color;
+            GUILayout.Label("###", GUILayout.Width(28f));
+            GUI.color = previousColor;
+            GUILayout.Label(label);
+            GUILayout.EndHorizontal();
         }
     }
 }

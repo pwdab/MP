@@ -328,9 +328,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.CombatRangeIndicator
   segmentCount: 64
   showAutoAttackRange: 1
-  showProjectileRange: 0
+  showAutoProjectileRange: 0
+  showManualProjectileRange: 0
+  showActiveSkillRange: 0
   autoAttackLineWidth: 0.035
-  projectileLineWidth: 0.055
+  autoProjectileLineWidth: 0.045
+  manualProjectileLineWidth: 0.055
+  activeSkillLineWidth: 0.045
   autoAttackColor: {r: 1, g: 0.85, b: 0.25, a: 0.9}
-  projectileColor: {r: 0.1, g: 0.55, b: 1, a: 1}
+  autoProjectileColor: {r: 0.1, g: 0.55, b: 1, a: 1}
+  manualProjectileColor: {r: 0.15, g: 1, b: 1, a: 1}
+  activeSkillColor: {r: 0.85, g: 0.25, b: 1, a: 0.95}
   sortingOrder: 50

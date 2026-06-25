@@ -6,7 +6,8 @@ namespace MP.Gameplay.Stats
         AttackPower,
         AttackSpeed,
         AutoAttackRange,
-        ProjectileRange,
+        AutoProjectileRange,
+        ManualProjectileRange,
         MoveSpeed,
         RespawnDelay,
         Defense

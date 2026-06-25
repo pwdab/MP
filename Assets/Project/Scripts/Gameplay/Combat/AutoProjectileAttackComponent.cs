@@ -13,12 +13,29 @@ namespace MP.Gameplay.Combat
         [SerializeField] private GameObject projectilePrefab;
         [SerializeField] private Transform firePoint;
         [SerializeField] private bool autoFire = true;
+        [SerializeField] private bool useAutoAttackRange;
+        [SerializeField] private float autoAttackRangeMultiplier = 1f;
+        [SerializeField] private bool fireInMoveDirectionWhenNoTarget;
 
         private readonly AttackScheduler attackScheduler = new();
         private readonly ITargetQuery targetQuery = new NaiveTargetQuery();
 
         private StatsComponent statsComponent;
         private CharacterStateComponent characterState;
+
+        public float CurrentAttackRange
+        {
+            get
+            {
+                if (statsComponent == null)
+                {
+                    return 0f;
+                }
+
+                EntityRuntimeStats stats = statsComponent.Stats;
+                return GetAttackRange(stats);
+            }
+        }
 
         private void Awake()
         {
@@ -55,12 +72,21 @@ namespace MP.Gameplay.Combat
         private void FireAtNearestTarget(EntityRuntimeStats stats)
         {
             Vector2 origin = firePoint.position;
-            if (!targetQuery.TryFindNearestTarget(origin, stats.ProjectileRange, team, out TargetableComponent target))
+            float attackRange = GetAttackRange(stats);
+            Vector2 direction;
+            if (targetQuery.TryFindNearestTarget(origin, attackRange, team, out TargetableComponent target))
+            {
+                direction = target.Position - origin;
+            }
+            else if (fireInMoveDirectionWhenNoTarget && characterState.HasMoveDirection)
+            {
+                direction = characterState.LastMoveDirection;
+            }
+            else
             {
                 return;
             }
 
-            Vector2 direction = target.Position - origin;
             if (direction.sqrMagnitude <= 0.0001f)
             {
                 direction = Vector2.right;
@@ -70,7 +96,17 @@ namespace MP.Gameplay.Combat
                 direction.Normalize();
             }
 
-            NetworkProjectileSpawner.TrySpawn(projectilePrefab, firePoint.position, direction, team, stats.AttackPower, stats.ProjectileRange);
+            NetworkProjectileSpawner.TrySpawn(projectilePrefab, firePoint.position, direction, team, stats.AttackPower, attackRange, gameObject);
+        }
+
+        private float GetAttackRange(EntityRuntimeStats stats)
+        {
+            if (!useAutoAttackRange)
+            {
+                return stats.AutoProjectileRange;
+            }
+
+            return stats.AutoAttackRange * Mathf.Max(0f, autoAttackRangeMultiplier);
         }
     }
 }

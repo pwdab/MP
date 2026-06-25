@@ -19,6 +19,7 @@ namespace MP.Gameplay.Combat
         private TeamId ownerTeam;
         private float damage;
         private float maxDistance;
+        private GameObject damageSource;
         private float traveledDistance;
         private float remainingLifetime;
         private double serverSpawnTime;
@@ -45,10 +46,16 @@ namespace MP.Gameplay.Combat
 
         public void InitializeServer(Vector2 spawnDirection, TeamId team, float projectileDamage, float projectileMaxDistance)
         {
+            InitializeServer(spawnDirection, team, projectileDamage, projectileMaxDistance, null);
+        }
+
+        public void InitializeServer(Vector2 spawnDirection, TeamId team, float projectileDamage, float projectileMaxDistance, GameObject projectileDamageSource)
+        {
             direction = IsFinite(spawnDirection) && spawnDirection.sqrMagnitude > 0.0001f ? spawnDirection.normalized : Vector2.right;
             ownerTeam = team;
             damage = Mathf.Max(0f, projectileDamage);
             maxDistance = Mathf.Max(0f, projectileMaxDistance);
+            damageSource = projectileDamageSource;
             traveledDistance = 0f;
             remainingLifetime = Mathf.Max(0f, lifetime);
             serverSpawnTime = GetServerTime();
@@ -168,7 +175,7 @@ namespace MP.Gameplay.Combat
                     continue;
                 }
 
-                DamageSystem.ApplyDamage(new DamageRequest(gameObject, target.Health, damage));
+                DamageSystem.ApplyDamage(new DamageRequest(damageSource != null ? damageSource : gameObject, target.Health, damage));
                 return true;
             }
 

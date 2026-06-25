@@ -21,6 +21,7 @@ namespace MP.Gameplay.Entity
 
         public float CurrentHealth => currentHealth;
         public bool IsDead { get; private set; }
+        public GameObject LastDamageSource { get; private set; }
 
         private void Awake()
         {
@@ -36,6 +37,7 @@ namespace MP.Gameplay.Entity
 
             currentHealth = MaxHealth;
             IsDead = false;
+            LastDamageSource = null;
 
             RaiseCurrentHealthChanged(previousHealth);
             RaiseDeathStateChanged(wasDead);
@@ -56,11 +58,17 @@ namespace MP.Gameplay.Entity
 
         public float ApplyDamage(float damage)
         {
+            return ApplyDamage(damage, null);
+        }
+
+        public float ApplyDamage(float damage, GameObject damageSource)
+        {
             if (IsDead || damage <= 0f)
             {
                 return 0f;
             }
 
+            LastDamageSource = damageSource;
             float previousHealth = currentHealth;
             bool wasDead = IsDead;
             currentHealth = Mathf.Max(0f, currentHealth - damage);

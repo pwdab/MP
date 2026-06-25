@@ -15,6 +15,18 @@ namespace MP.Gameplay.Combat
             float damage,
             float maxDistance)
         {
+            return TrySpawn(projectilePrefab, position, direction, team, damage, maxDistance, null);
+        }
+
+        public static bool TrySpawn(
+            GameObject projectilePrefab,
+            Vector3 position,
+            Vector2 direction,
+            TeamId team,
+            float damage,
+            float maxDistance,
+            GameObject damageSource)
+        {
             if (!NetworkContext.HasServerAuthority() || projectilePrefab == null || !IsFinite(position) || !IsFinite(direction))
             {
                 return false;
@@ -27,7 +39,7 @@ namespace MP.Gameplay.Combat
                 return false;
             }
 
-            projectile.InitializeServer(direction, team, damage, maxDistance);
+            projectile.InitializeServer(direction, team, damage, maxDistance, damageSource);
             if (NetworkSpawnUtility.TrySpawnNetworkObject(projectileObject))
             {
                 projectile.PublishSpawnStateServer();

@@ -23,7 +23,8 @@ namespace MP.Gameplay.Stats
         public float AttackPower => Stats.AttackPower;
         public float AttackSpeed => Stats.AttackSpeed;
         public float AutoAttackRange => Stats.AutoAttackRange;
-        public float ProjectileRange => Stats.ProjectileRange;
+        public float AutoProjectileRange => Stats.AutoProjectileRange;
+        public float ManualProjectileRange => Stats.ManualProjectileRange;
         public float MoveSpeed => Stats.MoveSpeed;
         public float RespawnDelay => Stats.RespawnDelay;
 

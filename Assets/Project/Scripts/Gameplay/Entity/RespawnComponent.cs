@@ -1,4 +1,5 @@
 using System.Collections;
+using MP.Gameplay.Combat;
 using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
 using MP.Network;
@@ -16,12 +17,16 @@ namespace MP.Gameplay.Entity
 
         private HealthComponent health;
         private StatsComponent stats;
+        private CharacterStateComponent characterState;
+        private PlayerActiveSkillComponent activeSkill;
         private Coroutine respawnCoroutine;
 
         private void Awake()
         {
             health = GetComponent<HealthComponent>();
             stats = GetComponent<StatsComponent>();
+            characterState = GetComponent<CharacterStateComponent>();
+            activeSkill = GetComponent<PlayerActiveSkillComponent>();
         }
 
         private void OnEnable()
@@ -66,7 +71,9 @@ namespace MP.Gameplay.Entity
             CancelPendingRespawn();
             MoveToRespawnPosition();
             health.RestoreToFullHealth();
-            // TODO: Apply invulnerability, restore input, and clear status effects.
+            characterState?.ApplyRespawnState();
+            activeSkill?.ResetCooldownServer();
+            // TODO: Clear buffs and status effects when those systems are implemented.
         }
 
         private void OnDied(HealthComponent _)

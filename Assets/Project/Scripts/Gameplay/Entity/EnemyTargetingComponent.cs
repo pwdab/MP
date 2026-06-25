@@ -16,15 +16,18 @@ namespace MP.Gameplay.Entity
 
         public bool TryGetTarget(out Transform targetTransform, out HealthComponent targetHealth)
         {
-            if (TryGetNearestDetectedPlayer(out PlayerEntity player))
+            PlayerEntity player = FindNearestDetectedPlayer(out float playerDistanceSqr);
+            CastleEntity castle = GetFallbackCastle();
+            bool hasCastle = castle != null && !castle.IsDestroyed && castle.Health != null;
+
+            if (player != null && (!hasCastle || playerDistanceSqr <= GetDistanceSqr(castle.transform)))
             {
                 targetTransform = player.transform;
                 targetHealth = player.Health;
                 return true;
             }
 
-            CastleEntity castle = GetFallbackCastle();
-            if (castle != null && !castle.IsDestroyed && castle.Health != null)
+            if (hasCastle)
             {
                 targetTransform = castle.transform;
                 targetHealth = castle.Health;
@@ -36,13 +39,13 @@ namespace MP.Gameplay.Entity
             return false;
         }
 
-        private bool TryGetNearestDetectedPlayer(out PlayerEntity nearestPlayer)
+        private PlayerEntity FindNearestDetectedPlayer(out float nearestDistanceSqr)
         {
             PlayerEntity[] players = FindObjectsByType<PlayerEntity>(FindObjectsSortMode.None);
             float range = Mathf.Max(0f, playerDetectionRange);
             float rangeSqr = range * range;
-            float nearestDistanceSqr = float.MaxValue;
-            nearestPlayer = null;
+            nearestDistanceSqr = float.MaxValue;
+            PlayerEntity nearestPlayer = null;
             Vector2 origin = transform.position;
 
             for (int i = 0; i < players.Length; i++)
@@ -63,7 +66,7 @@ namespace MP.Gameplay.Entity
                 nearestPlayer = player;
             }
 
-            return nearestPlayer != null;
+            return nearestPlayer;
         }
 
         private CastleEntity GetFallbackCastle()
@@ -74,6 +77,11 @@ namespace MP.Gameplay.Entity
             }
 
             return fallbackCastle;
+        }
+
+        private float GetDistanceSqr(Transform target)
+        {
+            return ((Vector2)target.position - (Vector2)transform.position).sqrMagnitude;
         }
     }
 }

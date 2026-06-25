@@ -21,6 +21,8 @@ namespace MP.Gameplay.Combat
         private StatsComponent statsComponent;
         private CharacterStateComponent characterState;
 
+        public float CurrentAttackRange => statsComponent != null ? statsComponent.ManualProjectileRange : 0f;
+
         private void Awake()
         {
             statsComponent = GetComponent<StatsComponent>();
@@ -79,7 +81,7 @@ namespace MP.Gameplay.Combat
             }
 
             EntityRuntimeStats stats = statsComponent.Stats;
-            NetworkProjectileSpawner.TrySpawn(projectilePrefab, firePoint.position, direction, team, stats.AttackPower, stats.ProjectileRange);
+            NetworkProjectileSpawner.TrySpawn(projectilePrefab, firePoint.position, direction, team, stats.AttackPower, CurrentAttackRange, gameObject);
         }
 
         private Vector2 GetAimWorldPosition()

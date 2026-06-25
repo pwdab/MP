@@ -7,6 +7,8 @@ namespace MP.Gameplay.Stats
     [CreateAssetMenu(menuName = "MP/Data/Entity Stats Definition")]
     public sealed class EntityStatsDefinition : ScriptableObject
     {
+        [Header("Base Stats")]
+        [Tooltip("Base stat table for this entity. Every StatId should exist exactly once.")]
         [SerializeField] private StatEntry[] stats =
         {
             new(StatId.MaxHealth, 100f, new StatBounds(1f, float.MaxValue)),
@@ -14,7 +16,8 @@ namespace MP.Gameplay.Stats
             new(StatId.AttackPower, 10f, new StatBounds(0f, float.MaxValue)),
             new(StatId.AttackSpeed, 1f, new StatBounds(0f, float.MaxValue)),
             new(StatId.AutoAttackRange, 1.5f, new StatBounds(0f, float.MaxValue)),
-            new(StatId.ProjectileRange, 5f, new StatBounds(0f, float.MaxValue)),
+            new(StatId.AutoProjectileRange, 5f, new StatBounds(0f, float.MaxValue)),
+            new(StatId.ManualProjectileRange, 7.5f, new StatBounds(0f, float.MaxValue)),
             new(StatId.MoveSpeed, 5f, new StatBounds(0f, float.MaxValue)),
             new(StatId.RespawnDelay, 3f, new StatBounds(0f, float.MaxValue))
         };
@@ -24,7 +27,8 @@ namespace MP.Gameplay.Stats
         public float AttackPower => GetBaseValue(StatId.AttackPower);
         public float AttackSpeed => GetBaseValue(StatId.AttackSpeed);
         public float AutoAttackRange => GetBaseValue(StatId.AutoAttackRange);
-        public float ProjectileRange => GetBaseValue(StatId.ProjectileRange);
+        public float AutoProjectileRange => GetBaseValue(StatId.AutoProjectileRange);
+        public float ManualProjectileRange => GetBaseValue(StatId.ManualProjectileRange);
         public float MoveSpeed => GetBaseValue(StatId.MoveSpeed);
         public float RespawnDelay => GetBaseValue(StatId.RespawnDelay);
 
@@ -33,7 +37,8 @@ namespace MP.Gameplay.Stats
         public StatBounds AttackPowerBounds => GetBounds(StatId.AttackPower);
         public StatBounds AttackSpeedBounds => GetBounds(StatId.AttackSpeed);
         public StatBounds AutoAttackRangeBounds => GetBounds(StatId.AutoAttackRange);
-        public StatBounds ProjectileRangeBounds => GetBounds(StatId.ProjectileRange);
+        public StatBounds AutoProjectileRangeBounds => GetBounds(StatId.AutoProjectileRange);
+        public StatBounds ManualProjectileRangeBounds => GetBounds(StatId.ManualProjectileRange);
         public StatBounds MoveSpeedBounds => GetBounds(StatId.MoveSpeed);
         public StatBounds RespawnDelayBounds => GetBounds(StatId.RespawnDelay);
 
@@ -42,6 +47,7 @@ namespace MP.Gameplay.Stats
         private void OnValidate()
         {
             RepairMissingStats();
+            NormalizeStats();
             ValidateStats();
         }
 
@@ -164,6 +170,19 @@ namespace MP.Gameplay.Stats
             }
         }
 
+        private void NormalizeStats()
+        {
+            if (stats == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < stats.Length; i++)
+            {
+                stats[i] = stats[i].Normalized();
+            }
+        }
+
         private static StatEntry CreateDefaultStat(StatId statId)
         {
             return statId switch
@@ -173,7 +192,8 @@ namespace MP.Gameplay.Stats
                 StatId.AttackPower => new StatEntry(statId, 10f, new StatBounds(0f, float.MaxValue)),
                 StatId.AttackSpeed => new StatEntry(statId, 1f, new StatBounds(0f, float.MaxValue)),
                 StatId.AutoAttackRange => new StatEntry(statId, 1.5f, new StatBounds(0f, float.MaxValue)),
-                StatId.ProjectileRange => new StatEntry(statId, 5f, new StatBounds(0f, float.MaxValue)),
+                StatId.AutoProjectileRange => new StatEntry(statId, 5f, new StatBounds(0f, float.MaxValue)),
+                StatId.ManualProjectileRange => new StatEntry(statId, 7.5f, new StatBounds(0f, float.MaxValue)),
                 StatId.MoveSpeed => new StatEntry(statId, 5f, new StatBounds(0f, float.MaxValue)),
                 StatId.RespawnDelay => new StatEntry(statId, 3f, new StatBounds(0f, float.MaxValue)),
                 _ => new StatEntry(statId, 0f, new StatBounds(0f, float.MaxValue))

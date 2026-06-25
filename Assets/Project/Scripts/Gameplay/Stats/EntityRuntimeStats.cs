@@ -54,11 +54,19 @@ namespace MP.Gameplay.Stats
             }
         }
 
-        public float ProjectileRange
+        public float AutoProjectileRange
         {
             get
             {
-                return GetValue(StatId.ProjectileRange);
+                return GetValue(StatId.AutoProjectileRange);
+            }
+        }
+
+        public float ManualProjectileRange
+        {
+            get
+            {
+                return GetValue(StatId.ManualProjectileRange);
             }
         }
 

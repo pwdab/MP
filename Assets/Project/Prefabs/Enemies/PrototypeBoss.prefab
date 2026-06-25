@@ -27,6 +27,8 @@ GameObject:
   - component: {fileID: 3668355855499252810}
   - component: {fileID: 1268565303912833608}
   - component: {fileID: 5508766645220473939}
+  - component: {fileID: 4300742666324500222}
+  - component: {fileID: 4636781097870089446}
   m_Layer: 0
   m_Name: PrototypeBoss
   m_TagString: Untagged
@@ -157,6 +159,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a0eed3b3f622aa4aa5fc3b07f59b458, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.CharacterStateComponent
+  invulnerabilityDurationAfterRespawn: 1
 --- !u!114 &9100391160036495290
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -238,7 +241,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1352105aa8dcf114fb50695cf9c28944, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Movement.EnemyMoveToCastleComponent
-  contactDistance: 0.01
+  contactDistance: 0
 --- !u!114 &3068761930956941093
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -281,11 +284,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.CombatRangeIndicator
   segmentCount: 64
   showAutoAttackRange: 1
-  showProjectileRange: 0
+  showAutoProjectileRange: 0
+  showManualProjectileRange: 0
+  showActiveSkillRange: 0
   autoAttackLineWidth: 0.035
-  projectileLineWidth: 0.055
+  autoProjectileLineWidth: 0.045
+  manualProjectileLineWidth: 0.055
+  activeSkillLineWidth: 0.045
   autoAttackColor: {r: 1, g: 0.85, b: 0.25, a: 0.9}
-  projectileColor: {r: 0.1, g: 0.55, b: 1, a: 1}
+  autoProjectileColor: {r: 0.1, g: 0.55, b: 1, a: 1}
+  manualProjectileColor: {r: 0.15, g: 1, b: 1, a: 1}
+  activeSkillColor: {r: 0.85, g: 0.25, b: 1, a: 0.95}
   sortingOrder: 50
 --- !u!114 &8832390765545741523
 MonoBehaviour:
@@ -418,3 +427,31 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &4300742666324500222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7282609900362273682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57cffcb80a7c4a29a9c9842d9b45c773, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stages.EnemyGoldDropComponent
+  goldAmount: 10
+  goldPrefab: {fileID: 115705000688340829, guid: d4d8abb4f087fed49a00714c625bd7fe, type: 3}
+  scatterRadius: 0.35
+--- !u!114 &4636781097870089446
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7282609900362273682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d71c69e6fd84c4bbff13c5c705c2359, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stages.EnemyExperienceRewardComponent
+  experienceAmount: 10

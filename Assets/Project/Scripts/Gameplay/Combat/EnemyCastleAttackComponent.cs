@@ -17,14 +17,12 @@ namespace MP.Gameplay.Combat
         private StatsComponent stats;
         private CharacterStateComponent characterState;
         private EnemyTargetingComponent targeting;
-        private Collider2D selfCollider;
 
         private void Awake()
         {
             stats = GetComponent<StatsComponent>();
             characterState = GetComponent<CharacterStateComponent>();
             targeting = GetComponent<EnemyTargetingComponent>();
-            selfCollider = GetComponent<Collider2D>();
         }
 
         public void TickServer(float deltaTime)
@@ -66,10 +64,10 @@ namespace MP.Gameplay.Combat
         private bool IsTargetInAttackRange(Transform targetTransform, float range)
         {
             Collider2D targetCollider = targetTransform.GetComponent<Collider2D>();
-            if (selfCollider != null && targetCollider != null)
+            if (targetCollider != null)
             {
-                ColliderDistance2D distance = selfCollider.Distance(targetCollider);
-                return distance.isOverlapped || distance.distance <= range;
+                Vector2 closestPoint = targetCollider.ClosestPoint(transform.position);
+                return ((Vector2)transform.position - closestPoint).sqrMagnitude <= range * range;
             }
 
             Vector2 origin = transform.position;

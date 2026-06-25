@@ -18,8 +18,6 @@ GameObject:
   - component: {fileID: 373861290133639366}
   - component: {fileID: 5801305019929113342}
   - component: {fileID: 6260714492362016210}
-  - component: {fileID: 4476667482659099427}
-  - component: {fileID: 3162951234668728728}
   - component: {fileID: 7837996456924862448}
   - component: {fileID: 458063400356238270}
   - component: {fileID: 832872416098437850}
@@ -36,6 +34,11 @@ GameObject:
   - component: {fileID: 8056291745733393615}
   - component: {fileID: 4880226311301210695}
   - component: {fileID: 4906392221800709289}
+  - component: {fileID: 5660884293273626836}
+  - component: {fileID: 3111969751185889015}
+  - component: {fileID: 75775577231475329}
+  - component: {fileID: 8993919224404496053}
+  - component: {fileID: 5629989341080424402}
   m_Layer: 0
   m_Name: PrototypePlayer
   m_TagString: Untagged
@@ -166,6 +169,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a0eed3b3f622aa4aa5fc3b07f59b458, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.CharacterStateComponent
+  invulnerabilityDurationAfterRespawn: 1
 --- !u!114 &6276547663891529755
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -220,38 +224,6 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   predictionSnapThreshold: 1.25
   maxClientDeltaTime: 0.05
---- !u!114 &4476667482659099427
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9069861629422310843}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 90c8e1bd4e2b4d1c90e34b0b0ff9a03a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.NetworkProjectileLauncher
-  ShowTopMostFoldoutHeaderGroup: 1
-  team: 1
-  projectilePrefab: {fileID: 4499161251396626233, guid: fa37293a60fdaca4d9d791b4d92d7a8a, type: 3}
-  firePoint: {fileID: 0}
---- !u!114 &3162951234668728728
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9069861629422310843}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed35ea6293e98a34c9f97f12120dd0fa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.CombatComponent
-  team: 1
-  attackOrigin: {fileID: 0}
-  autoAttack: 1
-  tickInUpdateForLocalTests: 0
 --- !u!114 &7837996456924862448
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -266,11 +238,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.CombatRangeIndicator
   segmentCount: 64
   showAutoAttackRange: 1
-  showProjectileRange: 1
+  showAutoProjectileRange: 1
+  showManualProjectileRange: 1
+  showActiveSkillRange: 0
   autoAttackLineWidth: 0.035
-  projectileLineWidth: 0.055
+  autoProjectileLineWidth: 0.045
+  manualProjectileLineWidth: 0.055
+  activeSkillLineWidth: 0.045
   autoAttackColor: {r: 1, g: 0.85, b: 0.25, a: 0.9}
-  projectileColor: {r: 0.4, g: 0.75, b: 1, a: 0.8}
+  autoProjectileColor: {r: 0.1, g: 0.55, b: 1, a: 1}
+  manualProjectileColor: {r: 0.15, g: 1, b: 1, a: 1}
+  activeSkillColor: {r: 0.85, g: 0.25, b: 1, a: 0.95}
   sortingOrder: 50
 --- !u!114 &458063400356238270
 MonoBehaviour:
@@ -375,6 +353,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 338f707618e94009b217e99eb3fa88a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MP.Progression.Level.PlayerProgressionComponent
+  ShowTopMostFoldoutHeaderGroup: 1
   level: 1
   experience: 0
   remainingGrowthPoints: 0
@@ -566,3 +545,90 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &5660884293273626836
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9069861629422310843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 880c8296d52241bbaadcb77c8e804c64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.PlayerDirectionalBasicAttackComponent
+  team: 1
+  attackHalfAngle: 45
+  autoAttack: 1
+--- !u!114 &3111969751185889015
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9069861629422310843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 550cdb7ba0cd4ef0881032da294c4edc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.PlayerActiveSkillComponent
+  ShowTopMostFoldoutHeaderGroup: 1
+  team: 1
+  cooldown: 8
+  radius: 1.875
+  damageMultiplier: 2
+  debugEffectDuration: 1.5
+--- !u!114 &75775577231475329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9069861629422310843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d19f7205eefd4be9b9545ae37a13bd7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Movement.PlayerMoveDirectionDebugIndicator
+  showDebugDirection: 1
+  length: 1.1
+  headLength: 0.25
+  headAngle: 28
+  lineWidth: 0.055
+  color: {r: 0.2, g: 1, b: 0.35, a: 1}
+  sortingOrder: 80
+--- !u!114 &8993919224404496053
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9069861629422310843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61042443ca734173943226d455648149, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.AutoProjectileAttackComponent
+  team: 1
+  projectilePrefab: {fileID: 4499161251396626233, guid: fa37293a60fdaca4d9d791b4d92d7a8a, type: 3}
+  firePoint: {fileID: 0}
+  autoFire: 1
+  useAutoAttackRange: 0
+  autoAttackRangeMultiplier: 1
+  fireInMoveDirectionWhenNoTarget: 1
+--- !u!114 &5629989341080424402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9069861629422310843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90c8e1bd4e2b4d1c90e34b0b0ff9a03a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.NetworkProjectileLauncher
+  ShowTopMostFoldoutHeaderGroup: 1
+  team: 1
+  projectilePrefab: {fileID: 4499161251396626233, guid: fa37293a60fdaca4d9d791b4d92d7a8a, type: 3}
+  firePoint: {fileID: 0}

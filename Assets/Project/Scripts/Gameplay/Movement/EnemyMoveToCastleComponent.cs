@@ -11,19 +11,17 @@ namespace MP.Gameplay.Movement
     [RequireComponent(typeof(EnemyTargetingComponent))]
     public sealed class EnemyMoveToCastleComponent : MonoBehaviour
     {
-        [SerializeField] private float contactDistance = 0.01f;
+        [SerializeField] private float contactDistance;
 
         private StatsComponent stats;
         private CharacterStateComponent characterState;
         private EnemyTargetingComponent targeting;
-        private Collider2D selfCollider;
 
         private void Awake()
         {
             stats = GetComponent<StatsComponent>();
             characterState = GetComponent<CharacterStateComponent>();
             targeting = GetComponent<EnemyTargetingComponent>();
-            selfCollider = GetComponent<Collider2D>();
         }
 
         public void TickServer(float deltaTime)
@@ -51,7 +49,7 @@ namespace MP.Gameplay.Movement
                 return;
             }
 
-            float remainingDistance = GetRemainingDistanceToContact(targetTransform, toTarget);
+            float remainingDistance = GetRemainingDistanceToAttackRange(targetTransform, toTarget);
             if (remainingDistance <= contactDistance)
             {
                 return;
@@ -68,18 +66,20 @@ namespace MP.Gameplay.Movement
             targeting.SetFallbackCastle(castle);
         }
 
-        private float GetRemainingDistanceToContact(Transform targetTransform, Vector2 toTarget)
+        private float GetRemainingDistanceToAttackRange(Transform targetTransform, Vector2 toTarget)
         {
+            float attackRange = Mathf.Max(0f, stats.AutoAttackRange);
             Collider2D targetCollider = targetTransform.GetComponent<Collider2D>();
-            if (selfCollider != null && targetCollider != null)
+            if (targetCollider != null)
             {
-                ColliderDistance2D distance = selfCollider.Distance(targetCollider);
-                return distance.isOverlapped ? 0f : Mathf.Max(0f, distance.distance);
+                Vector2 closestPoint = targetCollider.ClosestPoint(transform.position);
+                float distanceToTargetCollision = ((Vector2)transform.position - closestPoint).magnitude;
+                return Mathf.Max(0f, distanceToTargetCollision - attackRange);
             }
 
             float centerDistance = toTarget.magnitude;
-            float combinedRadius = GetApproximateRadius(transform) + GetApproximateRadius(targetTransform);
-            return Mathf.Max(0f, centerDistance - combinedRadius);
+            float targetRadius = GetApproximateRadius(targetTransform);
+            return Mathf.Max(0f, centerDistance - targetRadius - attackRange);
         }
 
         private static float GetApproximateRadius(Transform target)

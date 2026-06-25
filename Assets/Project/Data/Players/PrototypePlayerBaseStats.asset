@@ -18,7 +18,7 @@ MonoBehaviour:
     bounds:
       minimum: 1
       maximum: 1000
-  - statId: 7
+  - statId: 8
     baseValue: 100
     bounds:
       minimum: 0
@@ -44,11 +44,16 @@ MonoBehaviour:
       minimum: 0
       maximum: 30
   - statId: 5
+    baseValue: 7.5
+    bounds:
+      minimum: 0
+      maximum: 45
+  - statId: 6
     baseValue: 5
     bounds:
       minimum: 0
       maximum: 20
-  - statId: 6
+  - statId: 7
     baseValue: 10
     bounds:
       minimum: 0

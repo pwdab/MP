@@ -49,6 +49,7 @@ namespace MP.Gameplay.Combat
             if (combatants == null || combatants.Length == 0)
             {
                 TickDynamicEnemyMovers(deltaTime);
+                TickDynamicPlayerBasicAttackers(deltaTime);
                 TickDynamicCombatants(deltaTime);
                 TickDynamicProjectileAttackers(deltaTime);
                 TickDynamicCastleAttackers(deltaTime);
@@ -56,6 +57,7 @@ namespace MP.Gameplay.Combat
             }
 
             TickDynamicEnemyMovers(deltaTime);
+            TickDynamicPlayerBasicAttackers(deltaTime);
 
             for (int i = 0; i < combatants.Length; i++)
             {
@@ -85,6 +87,15 @@ namespace MP.Gameplay.Combat
             for (int i = 0; i < dynamicCombatants.Length; i++)
             {
                 dynamicCombatants[i].TickServer(deltaTime);
+            }
+        }
+
+        private static void TickDynamicPlayerBasicAttackers(float deltaTime)
+        {
+            PlayerDirectionalBasicAttackComponent[] attackers = FindObjectsByType<PlayerDirectionalBasicAttackComponent>(FindObjectsSortMode.None);
+            for (int i = 0; i < attackers.Length; i++)
+            {
+                attackers[i].TickServer(deltaTime);
             }
         }
 

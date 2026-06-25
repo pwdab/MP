@@ -117,6 +117,7 @@ namespace MP.Gameplay.Movement
             }
 
             input = SanitizeInput(input);
+            characterState.SetMoveDirection(input);
 
             transform.position += (Vector3)(input * statsComponent.MoveSpeed * deltaTime);
             SetServerPosition(transform.position);
@@ -125,6 +126,7 @@ namespace MP.Gameplay.Movement
         private void MoveLocal(Vector2 input, float deltaTime)
         {
             input = SanitizeInput(input);
+            characterState.SetMoveDirection(input);
 
             transform.position += (Vector3)(input * statsComponent.MoveSpeed * deltaTime);
         }

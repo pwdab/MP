@@ -7,7 +7,12 @@ namespace MP.Items
     [CreateAssetMenu(menuName = "MP/Data/Drop Table")]
     public sealed class DropTableDefinition : ScriptableObject
     {
+        [Header("Drops")]
+        [Tooltip("Drop entries rolled when this table is used.")]
         [SerializeField] private DropTableEntry[] entries;
+
+        [Header("World Placement")]
+        [Tooltip("Maximum random radius used when placing dropped items around the source.")]
         [SerializeField, Min(0f)] private float dropScatterRadius = 0.25f;
 
         public IReadOnlyList<DropTableEntry> Entries => entries ?? Array.Empty<DropTableEntry>();

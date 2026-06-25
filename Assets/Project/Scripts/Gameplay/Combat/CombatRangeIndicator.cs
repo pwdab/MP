@@ -8,33 +8,51 @@ namespace MP.Gameplay.Combat
     {
         [SerializeField] private int segmentCount = 64;
         [SerializeField] private bool showAutoAttackRange = true;
-        [SerializeField] private bool showProjectileRange = true;
+        [SerializeField] private bool showAutoProjectileRange = true;
+        [SerializeField] private bool showManualProjectileRange = true;
+        [SerializeField] private bool showActiveSkillRange;
         [SerializeField] private float autoAttackLineWidth = 0.035f;
-        [SerializeField] private float projectileLineWidth = 0.055f;
+        [SerializeField] private float autoProjectileLineWidth = 0.045f;
+        [SerializeField] private float manualProjectileLineWidth = 0.055f;
+        [SerializeField] private float activeSkillLineWidth = 0.045f;
         [SerializeField] private Color autoAttackColor = new(1f, 0.85f, 0.25f, 0.9f);
-        [SerializeField] private Color projectileColor = new(0.1f, 0.55f, 1f, 1f);
+        [SerializeField] private Color autoProjectileColor = new(0.1f, 0.55f, 1f, 1f);
+        [SerializeField] private Color manualProjectileColor = new(0.15f, 1f, 1f, 1f);
+        [SerializeField] private Color activeSkillColor = new(1f, 0.25f, 0.85f, 0.95f);
         [SerializeField] private int sortingOrder = 50;
 
         private StatsComponent statsComponent;
         private LineRenderer autoAttackLine;
-        private LineRenderer projectileLine;
-        private bool hasManualProjectileAttack;
+        private LineRenderer autoProjectileLine;
+        private LineRenderer manualProjectileLine;
+        private LineRenderer activeSkillLine;
+        private NetworkProjectileLauncher manualProjectileAttack;
+        private AutoProjectileAttackComponent autoProjectileAttack;
+        private PlayerActiveSkillComponent activeSkill;
 
         private void Awake()
         {
             statsComponent = GetComponent<StatsComponent>();
-            hasManualProjectileAttack = TryGetComponent(out NetworkProjectileLauncher _);
+            TryGetComponent(out manualProjectileAttack);
+            TryGetComponent(out autoProjectileAttack);
+            TryGetComponent(out activeSkill);
             autoAttackLine = CreateLineRenderer("AutoAttackRange", autoAttackColor, autoAttackLineWidth, sortingOrder);
-            projectileLine = CreateLineRenderer("ManualProjectileRange", projectileColor, projectileLineWidth, sortingOrder + 1);
+            autoProjectileLine = CreateLineRenderer("AutoProjectileRange", autoProjectileColor, autoProjectileLineWidth, sortingOrder + 1);
+            manualProjectileLine = CreateLineRenderer("ManualProjectileRange", manualProjectileColor, manualProjectileLineWidth, sortingOrder + 2);
+            activeSkillLine = CreateLineRenderer("ActiveSkillRange", activeSkillColor, activeSkillLineWidth, sortingOrder + 3);
         }
 
         private void LateUpdate()
         {
             float autoAttackRange = statsComponent.Stats.AutoAttackRange;
-            float projectileRange = statsComponent.Stats.ProjectileRange;
+            float autoProjectileRange = autoProjectileAttack != null ? autoProjectileAttack.CurrentAttackRange : 0f;
+            float manualProjectileRange = manualProjectileAttack != null ? manualProjectileAttack.CurrentAttackRange : statsComponent.Stats.ManualProjectileRange;
+            float activeSkillRange = activeSkill != null ? activeSkill.Radius : 0f;
 
             DrawCircle(autoAttackLine, autoAttackRange, showAutoAttackRange);
-            DrawCircle(projectileLine, projectileRange, showProjectileRange || hasManualProjectileAttack);
+            DrawCircle(autoProjectileLine, autoProjectileRange, showAutoProjectileRange && autoProjectileAttack != null);
+            DrawCircle(manualProjectileLine, manualProjectileRange, showManualProjectileRange && manualProjectileAttack != null);
+            DrawCircle(activeSkillLine, activeSkillRange, showActiveSkillRange && activeSkill != null);
         }
 
         private LineRenderer CreateLineRenderer(string childName, Color color, float width, int lineSortingOrder)

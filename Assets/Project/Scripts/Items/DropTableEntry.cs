@@ -6,9 +6,16 @@ namespace MP.Items
     [Serializable]
     public sealed class DropTableEntry
     {
+        [Tooltip("Item that can be dropped.")]
         [SerializeField] private ItemDefinition item;
+
+        [Tooltip("Chance to drop this item. 1 means 100%.")]
         [SerializeField, Range(0f, 1f)] private float dropChance = 1f;
+
+        [Tooltip("Minimum dropped quantity.")]
         [SerializeField, Min(1)] private int minQuantity = 1;
+
+        [Tooltip("Maximum dropped quantity.")]
         [SerializeField, Min(1)] private int maxQuantity = 1;
 
         public ItemDefinition Item => item;

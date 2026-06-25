@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ecfd726634a9460e88c2830b4114691d, type: 3}
   m_Name: knight_a_MoveSpeed
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stats.StatModifierDefinition
-  statId: 5
+  statId: 6
   type: 0
   value: 0

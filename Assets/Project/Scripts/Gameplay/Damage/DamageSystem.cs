@@ -14,8 +14,13 @@ namespace MP.Gameplay.Damage
                 return new DamageResult(request.Attacker, null, request.BaseDamage, 0f, false);
             }
 
+            if (request.Target.TryGetComponent(out CharacterStateComponent state) && state.IsInvulnerable)
+            {
+                return new DamageResult(request.Attacker, request.Target, request.BaseDamage, 0f, false);
+            }
+
             float finalDamage = ApplyDefense(request.Target, request.BaseDamage);
-            float appliedDamage = request.Target.ApplyDamage(finalDamage);
+            float appliedDamage = request.Target.ApplyDamage(finalDamage, request.Attacker);
 
             return new DamageResult(
                 request.Attacker,

@@ -27,6 +27,7 @@ namespace MP.Editor
         private const string EnemySpritePath = SpriteFolder + "/PrototypeEnemy.png";
         private const string BossSpritePath = SpriteFolder + "/PrototypeBoss.png";
         private const string ProjectileSpritePath = SpriteFolder + "/PrototypeProjectile.png";
+        private const string GoldSpritePath = SpriteFolder + "/PrototypeGold.png";
         private const string CastleSpritePath = SpriteFolder + "/PrototypeCastle.png";
         private const string MapSpritePath = SpriteFolder + "/PrototypeMapTile.png";
 
@@ -39,6 +40,7 @@ namespace MP.Editor
         private const string EnemyPrefabPath = "Assets/Project/Prefabs/Enemies/PrototypeEnemy.prefab";
         private const string BossPrefabPath = "Assets/Project/Prefabs/Enemies/PrototypeBoss.prefab";
         private const string ProjectilePrefabPath = "Assets/Project/Prefabs/Projectiles/PrototypeProjectile.prefab";
+        private const string GoldPrefabPath = "Assets/Project/Prefabs/Items/PrototypeGold.prefab";
         private const string CastlePrefabPath = "Assets/Project/Prefabs/Tower/PrototypeCastle.prefab";
 
         [MenuItem("MP/Prototype/Create Castle Defense Prototype Scene")]
@@ -58,9 +60,10 @@ namespace MP.Editor
             JobDefinition[] jobs = EnsureJobDefinitions();
 
             GameObject projectilePrefab = EnsureProjectilePrefab();
+            GameObject goldPrefab = EnsureGoldPrefab();
             GameObject castlePrefab = EnsureCastlePrefab(castleStats);
-            GameObject enemyPrefab = EnsureEnemyPrefab(EnemyPrefabPath, "PrototypeEnemy", enemyStats, EnemySpritePath, Color.red, Vector3.one * 0.65f);
-            GameObject bossPrefab = EnsureEnemyPrefab(BossPrefabPath, "PrototypeBoss", bossStats, BossSpritePath, new Color(0.75f, 0.25f, 1f), Vector3.one * 1.1f);
+            GameObject enemyPrefab = EnsureEnemyPrefab(EnemyPrefabPath, "PrototypeEnemy", enemyStats, EnemySpritePath, Color.red, Vector3.one * 0.65f, goldPrefab, 1);
+            GameObject bossPrefab = EnsureEnemyPrefab(BossPrefabPath, "PrototypeBoss", bossStats, BossSpritePath, new Color(0.75f, 0.25f, 1f), Vector3.one * 1.1f, goldPrefab, 10);
             GameObject playerPrefab = EnsurePlayerPrefab(playerStats, projectilePrefab, jobs);
             StageDefinition stageDefinition = EnsureStageDefinition(enemyPrefab, bossPrefab);
 
@@ -68,7 +71,7 @@ namespace MP.Editor
             CreateMap();
             CreateCastleSpawner(castlePrefab);
             CreateSpawnPointsAndSpawner(enemyPrefab);
-            CreateNetworkManager(playerPrefab, castlePrefab, enemyPrefab, bossPrefab, projectilePrefab);
+            CreateNetworkManager(playerPrefab, castlePrefab, enemyPrefab, bossPrefab, projectilePrefab, goldPrefab);
             CreateSimulationRoot(stageDefinition);
             CreateHud();
 
@@ -88,6 +91,7 @@ namespace MP.Editor
             EnsureFolder("Assets/Project/Prefabs", "Players");
             EnsureFolder("Assets/Project/Prefabs", "Enemies");
             EnsureFolder("Assets/Project/Prefabs", "Projectiles");
+            EnsureFolder("Assets/Project/Prefabs", "Items");
             EnsureFolder("Assets/Project/Prefabs", "Tower");
         }
 
@@ -110,6 +114,7 @@ namespace MP.Editor
             EnsureSpriteTexture(EnemySpritePath, new Color32(255, 80, 80, 255));
             EnsureSpriteTexture(BossSpritePath, new Color32(190, 70, 255, 255));
             EnsureSpriteTexture(ProjectileSpritePath, new Color32(255, 235, 90, 255));
+            EnsureSpriteTexture(GoldSpritePath, new Color32(255, 190, 40, 255));
             EnsureSpriteTexture(CastleSpritePath, new Color32(170, 170, 190, 255));
             EnsureSpriteTexture(MapSpritePath, new Color32(45, 55, 48, 255));
         }
@@ -139,12 +144,40 @@ namespace MP.Editor
             }
         }
 
-        private static GameObject EnsureEnemyPrefab(string prefabPath, string prefabName, EntityStatsDefinition enemyStats, string spritePath, Color color, Vector3 scale)
+        private static GameObject EnsureGoldPrefab()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GoldPrefabPath);
+            if (prefab != null)
+            {
+                AssignGoldPrefabReferences(prefab);
+                return prefab;
+            }
+
+            var gameObject = new GameObject("PrototypeGold");
+            try
+            {
+                gameObject.AddComponent<NetworkObject>();
+                gameObject.AddComponent<NetworkTransform>();
+                gameObject.AddComponent<GoldPickupComponent>();
+                EnsureKinematicRigidbody2D(gameObject);
+                EnsureSpriteRenderer(gameObject, GoldSpritePath, new Color(1f, 0.75f, 0.15f), 2, Vector3.one * 0.3f);
+                EnsureTriggerBoxCollider(gameObject, Vector2.one);
+
+                prefab = PrefabUtility.SaveAsPrefabAsset(gameObject, GoldPrefabPath);
+                return prefab;
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        private static GameObject EnsureEnemyPrefab(string prefabPath, string prefabName, EntityStatsDefinition enemyStats, string spritePath, Color color, Vector3 scale, GameObject goldPrefab, int goldAmount)
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             if (prefab != null)
             {
-                AssignEnemyPrefabReferences(prefab, enemyStats, spritePath, color, scale);
+                AssignEnemyPrefabReferences(prefab, enemyStats, spritePath, color, scale, goldPrefab, goldAmount);
                 return prefab;
             }
 
@@ -161,18 +194,23 @@ namespace MP.Editor
                 gameObject.AddComponent<NetworkHealthState>();
                 gameObject.AddComponent<WorldHealthLabel>();
                 gameObject.AddComponent<EnemyTargetingComponent>();
-                gameObject.AddComponent<EnemyMoveToCastleComponent>();
+                EnemyMoveToCastleComponent enemyMovement = gameObject.AddComponent<EnemyMoveToCastleComponent>();
                 gameObject.AddComponent<EnemyCastleAttackComponent>();
                 gameObject.AddComponent<EnemyDetectionRangeIndicator>();
                 CombatRangeIndicator rangeIndicator = gameObject.AddComponent<CombatRangeIndicator>();
                 gameObject.AddComponent<DespawnOnDeathComponent>();
+                EnemyGoldDropComponent goldDrop = gameObject.AddComponent<EnemyGoldDropComponent>();
+                EnemyExperienceRewardComponent experienceReward = gameObject.AddComponent<EnemyExperienceRewardComponent>();
                 gameObject.AddComponent<ItemDropComponent>();
                 EnsureSpriteRenderer(gameObject, spritePath, color, 1, scale);
                 EnsureBoxCollider(gameObject, Vector2.one);
 
                 AssignBaseStats(stats, enemyStats);
                 AssignTargetableTeam(targetable, TeamId.Enemy);
-                AssignRangeIndicator(rangeIndicator, true, false);
+                AssignEnemyMovement(enemyMovement);
+                AssignRangeIndicator(rangeIndicator, true, false, false);
+                AssignGoldDrop(goldDrop, goldPrefab, goldAmount);
+                AssignExperienceReward(experienceReward, goldAmount);
 
                 prefab = PrefabUtility.SaveAsPrefabAsset(gameObject, prefabPath);
                 return prefab;
@@ -246,9 +284,12 @@ namespace MP.Editor
                 gameObject.AddComponent<NetworkTestCommands>();
                 gameObject.AddComponent<WorldHealthLabel>();
                 gameObject.AddComponent<NetworkPlayerMovement>();
+                AutoProjectileAttackComponent projectileAttack = gameObject.AddComponent<AutoProjectileAttackComponent>();
                 NetworkProjectileLauncher launcher = gameObject.AddComponent<NetworkProjectileLauncher>();
-                CombatComponent combat = gameObject.AddComponent<CombatComponent>();
+                PlayerDirectionalBasicAttackComponent basicAttack = gameObject.AddComponent<PlayerDirectionalBasicAttackComponent>();
+                PlayerActiveSkillComponent activeSkill = gameObject.AddComponent<PlayerActiveSkillComponent>();
                 CombatRangeIndicator rangeIndicator = gameObject.AddComponent<CombatRangeIndicator>();
+                gameObject.AddComponent<PlayerMoveDirectionDebugIndicator>();
                 gameObject.AddComponent<LocalCameraFollow>();
                 gameObject.AddComponent<NetworkPlayerLabel>();
                 gameObject.AddComponent<NetworkPlayerSpawnOffset>();
@@ -266,10 +307,12 @@ namespace MP.Editor
                 AssignBaseStats(stats, playerStats);
                 AssignPlayerTeam(player, TeamId.Player);
                 AssignTargetableTeam(targetable, TeamId.Player);
+                AssignAutoProjectileAttack(projectileAttack, TeamId.Player, projectilePrefab, true);
                 AssignProjectileLauncher(launcher, TeamId.Player, projectilePrefab);
-                AssignCombatTeam(combat, TeamId.Player);
+                AssignPlayerBasicAttack(basicAttack, TeamId.Player);
                 AssignJobSelector(jobSelector, jobs);
-                AssignRangeIndicator(rangeIndicator, true, true);
+                AssignActiveSkill(activeSkill);
+                AssignRangeIndicator(rangeIndicator, true, true, false);
                 AssignPlayerRespawn(respawn);
 
                 prefab = PrefabUtility.SaveAsPrefabAsset(gameObject, PlayerPrefabPath);
@@ -298,8 +341,12 @@ namespace MP.Editor
             GetOrAdd<WorldHealthLabel>(root);
             GetOrAdd<NetworkPlayerMovement>(root);
             NetworkProjectileLauncher launcher = GetOrAdd<NetworkProjectileLauncher>(root);
-            CombatComponent combat = GetOrAdd<CombatComponent>(root);
+            AutoProjectileAttackComponent projectileAttack = GetOrAdd<AutoProjectileAttackComponent>(root);
+            RemoveIfExists<CombatComponent>(root);
+            PlayerDirectionalBasicAttackComponent basicAttack = GetOrAdd<PlayerDirectionalBasicAttackComponent>(root);
+            PlayerActiveSkillComponent activeSkill = GetOrAdd<PlayerActiveSkillComponent>(root);
             CombatRangeIndicator rangeIndicator = GetOrAdd<CombatRangeIndicator>(root);
+            GetOrAdd<PlayerMoveDirectionDebugIndicator>(root);
             GetOrAdd<LocalCameraFollow>(root);
             GetOrAdd<NetworkPlayerLabel>(root);
             GetOrAdd<NetworkPlayerSpawnOffset>(root);
@@ -310,10 +357,12 @@ namespace MP.Editor
             AssignBaseStats(stats, playerStats);
             AssignPlayerTeam(player, TeamId.Player);
             AssignTargetableTeam(targetable, TeamId.Player);
+            AssignAutoProjectileAttack(projectileAttack, TeamId.Player, projectilePrefab, true);
             AssignProjectileLauncher(launcher, TeamId.Player, projectilePrefab);
-            AssignCombatTeam(combat, TeamId.Player);
+            AssignPlayerBasicAttack(basicAttack, TeamId.Player);
             AssignJobSelector(jobSelector, jobs);
-            AssignRangeIndicator(rangeIndicator, true, true);
+            AssignActiveSkill(activeSkill);
+            AssignRangeIndicator(rangeIndicator, true, true, false);
             AssignPlayerRespawn(respawn);
             EnsureBoxCollider(root, Vector2.one);
 
@@ -321,7 +370,7 @@ namespace MP.Editor
             PrefabUtility.UnloadPrefabContents(root);
         }
 
-        private static void AssignEnemyPrefabReferences(GameObject prefab, EntityStatsDefinition enemyStats, string spritePath, Color color, Vector3 scale)
+        private static void AssignEnemyPrefabReferences(GameObject prefab, EntityStatsDefinition enemyStats, string spritePath, Color color, Vector3 scale, GameObject goldPrefab, int goldAmount)
         {
             string path = AssetDatabase.GetAssetPath(prefab);
             GameObject root = PrefabUtility.LoadPrefabContents(path);
@@ -336,18 +385,23 @@ namespace MP.Editor
             GetOrAdd<NetworkHealthState>(root);
             GetOrAdd<WorldHealthLabel>(root);
             GetOrAdd<EnemyTargetingComponent>(root);
-            GetOrAdd<EnemyMoveToCastleComponent>(root);
+            EnemyMoveToCastleComponent enemyMovement = GetOrAdd<EnemyMoveToCastleComponent>(root);
             GetOrAdd<EnemyCastleAttackComponent>(root);
             GetOrAdd<EnemyDetectionRangeIndicator>(root);
             CombatRangeIndicator rangeIndicator = GetOrAdd<CombatRangeIndicator>(root);
             GetOrAdd<DespawnOnDeathComponent>(root);
+            EnemyGoldDropComponent goldDrop = GetOrAdd<EnemyGoldDropComponent>(root);
+            EnemyExperienceRewardComponent experienceReward = GetOrAdd<EnemyExperienceRewardComponent>(root);
             GetOrAdd<ItemDropComponent>(root);
             EnsureSpriteRenderer(root, spritePath, color, 1, scale);
             EnsureBoxCollider(root, Vector2.one);
 
             AssignBaseStats(stats, enemyStats);
             AssignTargetableTeam(targetable, TeamId.Enemy);
-            AssignRangeIndicator(rangeIndicator, true, false);
+            AssignEnemyMovement(enemyMovement);
+            AssignRangeIndicator(rangeIndicator, true, false, false);
+            AssignGoldDrop(goldDrop, goldPrefab, goldAmount);
+            AssignExperienceReward(experienceReward, goldAmount);
 
             PrefabUtility.SaveAsPrefabAsset(root, path);
             PrefabUtility.UnloadPrefabContents(root);
@@ -375,7 +429,23 @@ namespace MP.Editor
             AssignCastleTeam(castle, TeamId.Player);
             AssignTargetableTeam(targetable, TeamId.Player);
             AssignCombatTeam(combat, TeamId.Player);
-            AssignRangeIndicator(rangeIndicator, true, false);
+            AssignRangeIndicator(rangeIndicator, true, false, false);
+
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+
+        private static void AssignGoldPrefabReferences(GameObject prefab)
+        {
+            string path = AssetDatabase.GetAssetPath(prefab);
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+
+            GetOrAdd<NetworkObject>(root);
+            GetOrAdd<NetworkTransform>(root);
+            GetOrAdd<GoldPickupComponent>(root);
+            EnsureKinematicRigidbody2D(root);
+            EnsureSpriteRenderer(root, GoldSpritePath, new Color(1f, 0.75f, 0.15f), 2, Vector3.one * 0.3f);
+            EnsureTriggerBoxCollider(root, Vector2.one);
 
             PrefabUtility.SaveAsPrefabAsset(root, path);
             PrefabUtility.UnloadPrefabContents(root);
@@ -434,7 +504,7 @@ namespace MP.Editor
             AssignSpawner(spawner, enemyPrefab, spawnPoints);
         }
 
-        private static void CreateNetworkManager(GameObject playerPrefab, GameObject castlePrefab, GameObject enemyPrefab, GameObject bossPrefab, GameObject projectilePrefab)
+        private static void CreateNetworkManager(GameObject playerPrefab, GameObject castlePrefab, GameObject enemyPrefab, GameObject bossPrefab, GameObject projectilePrefab, GameObject goldPrefab)
         {
             var gameObject = new GameObject("NetworkManager");
             NetworkManager networkManager = gameObject.AddComponent<NetworkManager>();
@@ -444,7 +514,7 @@ namespace MP.Editor
             networkManager.NetworkConfig.NetworkTransport = transport;
             networkManager.NetworkConfig.PlayerPrefab = playerPrefab;
             networkManager.NetworkConfig.ForceSamePrefabs = false;
-            AssignNetworkPrefabs(bootstrap, castlePrefab, enemyPrefab, bossPrefab, projectilePrefab);
+            AssignNetworkPrefabs(bootstrap, castlePrefab, enemyPrefab, bossPrefab, projectilePrefab, goldPrefab);
         }
 
         private static void CreateSimulationRoot(StageDefinition stageDefinition)
@@ -493,7 +563,8 @@ namespace MP.Editor
                 EnsureModifier(jobId, StatId.AttackPower, ConvertAttackPower(attackPower) - 10f),
                 EnsureModifier(jobId, StatId.AttackSpeed, ConvertAttackSpeed(attackSpeed) - 1f),
                 EnsureModifier(jobId, StatId.AutoAttackRange, ConvertAutoAttackRange(attackRange) - 2.5f),
-                EnsureModifier(jobId, StatId.ProjectileRange, ConvertAttackRange(attackRange) - 5f)
+                EnsureModifier(jobId, StatId.AutoProjectileRange, ConvertAttackRange(attackRange) - 5f),
+                EnsureModifier(jobId, StatId.ManualProjectileRange, ConvertManualProjectileRange(attackRange) - 7.5f)
             };
 
             var serializedJob = new SerializedObject(job);
@@ -540,7 +611,8 @@ namespace MP.Editor
                 new StatEntry(StatId.AttackPower, 10f, new StatBounds(0f, 1000f)),
                 new StatEntry(StatId.AttackSpeed, 1f, new StatBounds(0f, 20f)),
                 new StatEntry(StatId.AutoAttackRange, 2.5f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.ProjectileRange, 5f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.AutoProjectileRange, 5f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.ManualProjectileRange, 7.5f, new StatBounds(0f, 45f)),
                 new StatEntry(StatId.MoveSpeed, 5f, new StatBounds(0f, 20f)),
                 new StatEntry(StatId.RespawnDelay, 10f, new StatBounds(0f, 60f))
             };
@@ -555,7 +627,8 @@ namespace MP.Editor
                 new StatEntry(StatId.AttackPower, 8f, new StatBounds(0f, 1000f)),
                 new StatEntry(StatId.AttackSpeed, 0.7f, new StatBounds(0f, 20f)),
                 new StatEntry(StatId.AutoAttackRange, 1.2f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.ProjectileRange, 0f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.AutoProjectileRange, 0f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.ManualProjectileRange, 0f, new StatBounds(0f, 45f)),
                 new StatEntry(StatId.MoveSpeed, 1.6f, new StatBounds(0f, 20f)),
                 new StatEntry(StatId.RespawnDelay, 3f, new StatBounds(0f, 60f))
             };
@@ -570,7 +643,8 @@ namespace MP.Editor
                 new StatEntry(StatId.AttackPower, 16f, new StatBounds(0f, 1000f)),
                 new StatEntry(StatId.AttackSpeed, 0.55f, new StatBounds(0f, 20f)),
                 new StatEntry(StatId.AutoAttackRange, 1.6f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.ProjectileRange, 0f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.AutoProjectileRange, 0f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.ManualProjectileRange, 0f, new StatBounds(0f, 45f)),
                 new StatEntry(StatId.MoveSpeed, 1.1f, new StatBounds(0f, 20f)),
                 new StatEntry(StatId.RespawnDelay, 3f, new StatBounds(0f, 60f))
             };
@@ -585,7 +659,8 @@ namespace MP.Editor
                 new StatEntry(StatId.AttackPower, 12f, new StatBounds(0f, 1000f)),
                 new StatEntry(StatId.AttackSpeed, 0.8f, new StatBounds(0f, 20f)),
                 new StatEntry(StatId.AutoAttackRange, 4f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.ProjectileRange, 0f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.AutoProjectileRange, 0f, new StatBounds(0f, 30f)),
+                new StatEntry(StatId.ManualProjectileRange, 0f, new StatBounds(0f, 45f)),
                 new StatEntry(StatId.MoveSpeed, 0f, new StatBounds(0f, 20f)),
                 new StatEntry(StatId.RespawnDelay, 0f, new StatBounds(0f, 60f))
             };
@@ -688,14 +763,6 @@ namespace MP.Editor
             serializedStageFlow.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void AssignProjectileLauncher(NetworkProjectileLauncher launcher, TeamId team, GameObject projectilePrefab)
-        {
-            var serializedLauncher = new SerializedObject(launcher);
-            serializedLauncher.FindProperty("team").enumValueIndex = (int)team;
-            serializedLauncher.FindProperty("projectilePrefab").objectReferenceValue = projectilePrefab;
-            serializedLauncher.ApplyModifiedPropertiesWithoutUndo();
-        }
-
         private static void AssignCombatTeam(CombatComponent combat, TeamId team)
         {
             var serializedCombat = new SerializedObject(combat);
@@ -704,11 +771,72 @@ namespace MP.Editor
             serializedCombat.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void AssignRangeIndicator(CombatRangeIndicator indicator, bool showAutoAttackRange, bool showProjectileRange)
+        private static void AssignAutoProjectileAttack(AutoProjectileAttackComponent projectileAttack, TeamId team, GameObject projectilePrefab, bool playerStyle)
+        {
+            var serializedAttack = new SerializedObject(projectileAttack);
+            serializedAttack.FindProperty("team").enumValueIndex = (int)team;
+            serializedAttack.FindProperty("projectilePrefab").objectReferenceValue = projectilePrefab;
+            serializedAttack.FindProperty("autoFire").boolValue = true;
+            serializedAttack.FindProperty("useAutoAttackRange").boolValue = false;
+            serializedAttack.FindProperty("autoAttackRangeMultiplier").floatValue = 1f;
+            serializedAttack.FindProperty("fireInMoveDirectionWhenNoTarget").boolValue = playerStyle;
+            serializedAttack.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignActiveSkill(PlayerActiveSkillComponent activeSkill)
+        {
+            var serializedSkill = new SerializedObject(activeSkill);
+            serializedSkill.FindProperty("radius").floatValue = 1.875f;
+            serializedSkill.FindProperty("debugEffectDuration").floatValue = 1.5f;
+            serializedSkill.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignProjectileLauncher(NetworkProjectileLauncher launcher, TeamId team, GameObject projectilePrefab)
+        {
+            var serializedLauncher = new SerializedObject(launcher);
+            serializedLauncher.FindProperty("team").enumValueIndex = (int)team;
+            serializedLauncher.FindProperty("projectilePrefab").objectReferenceValue = projectilePrefab;
+            serializedLauncher.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignPlayerBasicAttack(PlayerDirectionalBasicAttackComponent basicAttack, TeamId team)
+        {
+            var serializedAttack = new SerializedObject(basicAttack);
+            serializedAttack.FindProperty("team").enumValueIndex = (int)team;
+            serializedAttack.FindProperty("autoAttack").boolValue = true;
+            serializedAttack.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignGoldDrop(EnemyGoldDropComponent goldDrop, GameObject goldPrefab, int goldAmount)
+        {
+            var serializedGoldDrop = new SerializedObject(goldDrop);
+            serializedGoldDrop.FindProperty("goldAmount").intValue = Mathf.Max(0, goldAmount);
+            serializedGoldDrop.FindProperty("goldPrefab").objectReferenceValue = goldPrefab;
+            serializedGoldDrop.FindProperty("scatterRadius").floatValue = 0.35f;
+            serializedGoldDrop.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignEnemyMovement(EnemyMoveToCastleComponent movement)
+        {
+            var serializedMovement = new SerializedObject(movement);
+            serializedMovement.FindProperty("contactDistance").floatValue = 0f;
+            serializedMovement.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignExperienceReward(EnemyExperienceRewardComponent reward, int experienceAmount)
+        {
+            var serializedReward = new SerializedObject(reward);
+            serializedReward.FindProperty("experienceAmount").intValue = Mathf.Max(0, experienceAmount);
+            serializedReward.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignRangeIndicator(CombatRangeIndicator indicator, bool showAutoAttackRange, bool showProjectileRanges, bool showActiveSkillRange = false)
         {
             var serializedIndicator = new SerializedObject(indicator);
             serializedIndicator.FindProperty("showAutoAttackRange").boolValue = showAutoAttackRange;
-            serializedIndicator.FindProperty("showProjectileRange").boolValue = showProjectileRange;
+            serializedIndicator.FindProperty("showAutoProjectileRange").boolValue = showProjectileRanges;
+            serializedIndicator.FindProperty("showManualProjectileRange").boolValue = showProjectileRanges;
+            serializedIndicator.FindProperty("showActiveSkillRange").boolValue = showActiveSkillRange;
             serializedIndicator.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -841,6 +969,31 @@ namespace MP.Editor
             collider.size = size;
         }
 
+        private static void EnsureTriggerBoxCollider(GameObject gameObject, Vector2 size)
+        {
+            BoxCollider2D collider = gameObject.GetComponent<BoxCollider2D>();
+            if (collider == null)
+            {
+                collider = gameObject.AddComponent<BoxCollider2D>();
+            }
+
+            collider.isTrigger = true;
+            collider.size = size;
+        }
+
+        private static void EnsureKinematicRigidbody2D(GameObject gameObject)
+        {
+            Rigidbody2D body = gameObject.GetComponent<Rigidbody2D>();
+            if (body == null)
+            {
+                body = gameObject.AddComponent<Rigidbody2D>();
+            }
+
+            body.bodyType = RigidbodyType2D.Kinematic;
+            body.simulated = true;
+            body.gravityScale = 0f;
+        }
+
         private static void EnsureSpriteTexture(string path, Color32 color)
         {
             if (!AssetDatabase.LoadAssetAtPath<Texture2D>(path))
@@ -884,6 +1037,14 @@ namespace MP.Editor
             return gameObject.TryGetComponent(out T component) ? component : gameObject.AddComponent<T>();
         }
 
+        private static void RemoveIfExists<T>(GameObject gameObject) where T : Component
+        {
+            if (gameObject.TryGetComponent(out T component))
+            {
+                Object.DestroyImmediate(component);
+            }
+        }
+
         private static float ConvertMaxHealth(float rating)
         {
             return rating;
@@ -907,6 +1068,11 @@ namespace MP.Editor
         private static float ConvertAttackRange(float rating)
         {
             return rating / 20f;
+        }
+
+        private static float ConvertManualProjectileRange(float rating)
+        {
+            return ConvertAttackRange(rating) * 1.5f;
         }
 
         private static float ConvertAutoAttackRange(float rating)

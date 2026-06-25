@@ -11,13 +11,32 @@ namespace MP.Items
     [CreateAssetMenu(menuName = "MP/Data/Item Definition")]
     public sealed class ItemDefinition : ScriptableObject
     {
+        [Header("Identity")]
+        [Tooltip("Stable item identifier used by save data and future network snapshots.")]
         [SerializeField] private string itemId;
+
+        [Tooltip("Name shown to players.")]
         [SerializeField] private string displayName;
+
+        [Header("World Drop")]
+        [Tooltip("Prefab spawned when this item appears in the world.")]
         [SerializeField] private GameObject dropPrefab;
+
+        [Header("Inventory")]
+        [Tooltip("Stackable items share one inventory slot. Equippable items are forced to non-stackable.")]
         [SerializeField] private bool isStackable = true;
+
+        [Tooltip("Maximum quantity per inventory slot for stackable items.")]
         [SerializeField, Min(1)] private int maxStackSize = 99;
+
+        [Header("Equipment")]
+        [Tooltip("Whether this item can be equipped.")]
         [SerializeField] private bool canEquip;
+
+        [Tooltip("Equipment slot occupied by this item.")]
         [SerializeField] private EquipSlotId equipSlot;
+
+        [Tooltip("Stat modifiers applied while this item is equipped.")]
         [SerializeField] private StatModifierDefinition[] equipStatModifiers = Array.Empty<StatModifierDefinition>();
 
         public string ItemId => itemId;

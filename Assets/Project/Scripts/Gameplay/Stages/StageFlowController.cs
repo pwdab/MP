@@ -1,4 +1,5 @@
 using System;
+using MP.Gameplay.Combat;
 using MP.Gameplay.Entity;
 using MP.Network;
 using UnityEngine;
@@ -35,6 +36,26 @@ namespace MP.Gameplay.Stages
         public int CurrentGold => currentGold;
         public int CurrentExperience => currentExperience;
         public WaveDefinition CurrentWave { get; private set; }
+
+        public void AddGold(int amount)
+        {
+            if (!NetworkContext.HasServerAuthority())
+            {
+                return;
+            }
+
+            currentGold += Mathf.Max(0, amount);
+        }
+
+        public void AddExperience(int amount)
+        {
+            if (!NetworkContext.HasServerAuthority())
+            {
+                return;
+            }
+
+            currentExperience += Mathf.Max(0, amount);
+        }
 
         private void Awake()
         {
@@ -227,6 +248,16 @@ namespace MP.Gameplay.Stages
                 Vector2 offset = new(Mathf.Cos(angle), Mathf.Sin(angle));
                 player.transform.position = castle.transform.position + (Vector3)(offset * distance);
                 player.Health?.RestoreToFullHealth();
+
+                if (player.TryGetComponent(out CharacterStateComponent state))
+                {
+                    state.ResetCombatState();
+                }
+
+                if (player.TryGetComponent(out PlayerActiveSkillComponent activeSkill))
+                {
+                    activeSkill.ResetCooldownServer();
+                }
             }
         }
 
