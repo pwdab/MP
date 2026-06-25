@@ -1,4 +1,5 @@
 using MP.Gameplay.Entity;
+using MP.Gameplay.Events;
 using MP.Network;
 using MP.Progression.Level;
 using MP.UI;
@@ -6,42 +7,43 @@ using UnityEngine;
 
 namespace MP.Gameplay.Stages
 {
-    [RequireComponent(typeof(HealthComponent))]
+    [RequireComponent(typeof(EnemyEntity))]
     public sealed class EnemyExperienceRewardComponent : MonoBehaviour
     {
         [SerializeField, Min(0)] private int experienceAmount = 1;
+        [SerializeField] private EnemyKilledEventChannel enemyKilledEventChannel;
 
-        private HealthComponent health;
+        private EnemyEntity enemy;
 
         private void Awake()
         {
-            health = GetComponent<HealthComponent>();
+            enemy = GetComponent<EnemyEntity>();
         }
 
         private void OnEnable()
         {
-            if (health != null)
+            if (enemyKilledEventChannel != null)
             {
-                health.Died += OnDied;
+                enemyKilledEventChannel.Register(OnEnemyKilled);
             }
         }
 
         private void OnDisable()
         {
-            if (health != null)
+            if (enemyKilledEventChannel != null)
             {
-                health.Died -= OnDied;
+                enemyKilledEventChannel.Unregister(OnEnemyKilled);
             }
         }
 
-        private void OnDied(HealthComponent _)
+        private void OnEnemyKilled(EnemyKilledEvent eventData)
         {
-            if (!NetworkContext.HasServerAuthority() || experienceAmount <= 0)
+            if (eventData.Enemy != enemy || !NetworkContext.HasServerAuthority() || experienceAmount <= 0)
             {
                 return;
             }
 
-            if (!TryGetKillerProgression(out PlayerProgressionComponent progression))
+            if (!TryGetRewardReceiverProgression(eventData.DamageContext.RewardReceiver, out PlayerProgressionComponent progression))
             {
                 return;
             }
@@ -50,27 +52,26 @@ namespace MP.Gameplay.Stages
             FloatingWorldText.Show(transform.position + Vector3.up, $"+{experienceAmount} EXP", new Color(0.35f, 0.8f, 1f, 1f));
         }
 
-        private bool TryGetKillerProgression(out PlayerProgressionComponent progression)
+        private static bool TryGetRewardReceiverProgression(GameObject rewardReceiver, out PlayerProgressionComponent progression)
         {
             progression = null;
-            GameObject damageSource = health.LastDamageSource;
-            if (damageSource == null)
+            if (rewardReceiver == null)
             {
                 return false;
             }
 
-            if (damageSource.TryGetComponent(out progression))
+            if (rewardReceiver.TryGetComponent(out progression))
             {
                 return true;
             }
 
-            progression = damageSource.GetComponentInParent<PlayerProgressionComponent>();
+            progression = rewardReceiver.GetComponentInParent<PlayerProgressionComponent>();
             if (progression != null)
             {
                 return true;
             }
 
-            progression = damageSource.GetComponentInChildren<PlayerProgressionComponent>();
+            progression = rewardReceiver.GetComponentInChildren<PlayerProgressionComponent>();
             return progression != null;
         }
     }

@@ -25,7 +25,7 @@ namespace MP.Gameplay.Combat
             TeamId team,
             float damage,
             float maxDistance,
-            GameObject damageSource)
+            GameObject instigator)
         {
             if (!NetworkContext.HasServerAuthority() || projectilePrefab == null || !IsFinite(position) || !IsFinite(direction))
             {
@@ -39,7 +39,7 @@ namespace MP.Gameplay.Combat
                 return false;
             }
 
-            projectile.InitializeServer(direction, team, damage, maxDistance, damageSource);
+            projectile.InitializeServer(direction, team, damage, maxDistance, instigator);
             if (NetworkSpawnUtility.TrySpawnNetworkObject(projectileObject))
             {
                 projectile.PublishSpawnStateServer();

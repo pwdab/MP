@@ -74,7 +74,7 @@ namespace MP.Gameplay.Combat
                     continue;
                 }
 
-                DamageSystem.ApplyDamage(new DamageRequest(gameObject, target.Health, runtimeStats.AttackPower));
+                DamageSystem.ApplyDamage(new DamageRequest(DamageContext.FromInstigator(gameObject), target.Health, runtimeStats.AttackPower));
             }
         }
     }

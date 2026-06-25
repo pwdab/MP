@@ -1,20 +1,18 @@
 using MP.Gameplay.Entity;
-using UnityEngine;
-
 namespace MP.Gameplay.Damage
 {
     public readonly struct DamageResult
     {
-        public DamageResult(GameObject attacker, HealthComponent target, float requestedDamage, float appliedDamage, bool killed)
+        public DamageResult(DamageContext context, HealthComponent target, float requestedDamage, float appliedDamage, bool killed)
         {
-            Attacker = attacker;
+            Context = context;
             Target = target;
             RequestedDamage = requestedDamage;
             AppliedDamage = appliedDamage;
             Killed = killed;
         }
 
-        public GameObject Attacker { get; }
+        public DamageContext Context { get; }
         public HealthComponent Target { get; }
         public float RequestedDamage { get; }
         public float AppliedDamage { get; }

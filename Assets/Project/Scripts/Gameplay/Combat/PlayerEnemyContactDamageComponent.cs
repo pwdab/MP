@@ -53,7 +53,7 @@ namespace MP.Gameplay.Combat
                     continue;
                 }
 
-                DamageResult result = DamageSystem.ApplyDamage(new DamageRequest(enemy.gameObject, health, contactDamage));
+                DamageResult result = DamageSystem.ApplyDamage(new DamageRequest(DamageContext.FromInstigator(enemy.gameObject), health, contactDamage));
                 if (result.Killed)
                 {
                     return;

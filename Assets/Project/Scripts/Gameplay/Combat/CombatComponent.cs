@@ -70,7 +70,7 @@ namespace MP.Gameplay.Combat
                 return;
             }
 
-            var request = new DamageRequest(gameObject, target.Health, stats.AttackPower);
+            var request = new DamageRequest(DamageContext.FromInstigator(gameObject), target.Health, stats.AttackPower);
             DamageSystem.ApplyDamage(request);
         }
     }

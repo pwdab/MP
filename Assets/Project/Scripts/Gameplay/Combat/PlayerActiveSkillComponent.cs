@@ -108,7 +108,7 @@ namespace MP.Gameplay.Combat
 
                 if ((target.Position - origin).sqrMagnitude <= rangeSqr)
                 {
-                    DamageSystem.ApplyDamage(new DamageRequest(gameObject, target.Health, damage));
+                    DamageSystem.ApplyDamage(new DamageRequest(DamageContext.FromInstigator(gameObject), target.Health, damage));
                 }
             }
 

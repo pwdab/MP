@@ -47,7 +47,7 @@ namespace MP.Gameplay.Entity
                 return;
             }
 
-            enemyKilledEventChannel.Raise(new EnemyKilledEvent(this));
+            enemyKilledEventChannel.Raise(new EnemyKilledEvent(this, health.LastDamageContext));
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using MP.Gameplay.Damage;
 using MP.Gameplay.Stats;
 using UnityEngine;
 
@@ -21,7 +22,8 @@ namespace MP.Gameplay.Entity
 
         public float CurrentHealth => currentHealth;
         public bool IsDead { get; private set; }
-        public GameObject LastDamageSource { get; private set; }
+        public DamageContext LastDamageContext { get; private set; }
+        public GameObject LastDamageSource => LastDamageContext.DamageSource;
 
         private void Awake()
         {
@@ -37,7 +39,7 @@ namespace MP.Gameplay.Entity
 
             currentHealth = MaxHealth;
             IsDead = false;
-            LastDamageSource = null;
+            LastDamageContext = DamageContext.None;
 
             RaiseCurrentHealthChanged(previousHealth);
             RaiseDeathStateChanged(wasDead);
@@ -58,17 +60,22 @@ namespace MP.Gameplay.Entity
 
         public float ApplyDamage(float damage)
         {
-            return ApplyDamage(damage, null);
+            return ApplyDamage(damage, DamageContext.None);
         }
 
         public float ApplyDamage(float damage, GameObject damageSource)
+        {
+            return ApplyDamage(damage, DamageContext.FromInstigator(damageSource));
+        }
+
+        public float ApplyDamage(float damage, DamageContext context)
         {
             if (IsDead || damage <= 0f)
             {
                 return 0f;
             }
 
-            LastDamageSource = damageSource;
+            LastDamageContext = context;
             float previousHealth = currentHealth;
             bool wasDead = IsDead;
             currentHealth = Mathf.Max(0f, currentHealth - damage);

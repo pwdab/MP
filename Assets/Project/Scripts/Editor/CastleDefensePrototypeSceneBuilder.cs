@@ -1,5 +1,6 @@
 using MP.Gameplay.Combat;
 using MP.Gameplay.Entity;
+using MP.Gameplay.Events;
 using MP.Gameplay.Movement;
 using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
@@ -39,6 +40,7 @@ namespace MP.Editor
         private const string EnemyStatsPath = "Assets/Project/Data/Enemies/PrototypeEnemyBaseStats.asset";
         private const string BossStatsPath = "Assets/Project/Data/Enemies/PrototypeBossBaseStats.asset";
         private const string CastleStatsPath = "Assets/Project/Data/Stages/PrototypeCastleBaseStats.asset";
+        private const string EnemyKilledEventChannelPath = "Assets/Project/Data/Events/EnemyKilledEventChannel.asset";
         private const string StageDefinitionPath = "Assets/Project/Data/Stages/PrototypeStage.asset";
         private const string PlayerPrefabPath = "Assets/Project/Prefabs/Players/PrototypePlayer.prefab";
         private const string EnemyPrefabPath = "Assets/Project/Prefabs/Enemies/PrototypeEnemy.prefab";
@@ -90,6 +92,7 @@ namespace MP.Editor
             EnsureFolder("Assets/Project/Data", "Players");
             EnsureFolder("Assets/Project/Data", "Enemies");
             EnsureFolder("Assets/Project/Data", "Stages");
+            EnsureFolder("Assets/Project/Data", "Events");
             EnsureFolder("Assets/Project/Data", "Jobs");
             EnsureFolder("Assets/Project/Data/Jobs", "Modifiers");
             EnsureFolder("Assets/Project/Prefabs", "Players");
@@ -193,7 +196,7 @@ namespace MP.Editor
                 StatsComponent stats = gameObject.AddComponent<StatsComponent>();
                 gameObject.AddComponent<HealthComponent>();
                 gameObject.AddComponent<CharacterStateComponent>();
-                gameObject.AddComponent<EnemyEntity>();
+                EnemyEntity enemyEntity = gameObject.AddComponent<EnemyEntity>();
                 TargetableComponent targetable = gameObject.AddComponent<TargetableComponent>();
                 gameObject.AddComponent<NetworkHealthState>();
                 gameObject.AddComponent<WorldHealthLabel>();
@@ -210,13 +213,16 @@ namespace MP.Editor
                 EnsureSpriteRenderer(gameObject, spritePath, color, 1, scale);
                 EnsureBoxCollider(gameObject, Vector2.one);
 
+                EnemyKilledEventChannel enemyKilledEventChannel = EnsureEnemyKilledEventChannel();
+
                 AssignBaseStats(stats, enemyStats);
                 AssignTargetableTeam(targetable, TeamId.Enemy);
                 AssignEnemyMovement(enemyMovement);
+                AssignEnemyKilledEventChannel(enemyEntity, enemyKilledEventChannel);
                 AssignRangeIndicator(rangeIndicator, true, false, false);
                 AssignDespawnOnDeath(despawnOnDeath);
                 AssignGoldDrop(goldDrop, goldPrefab, goldAmount);
-                AssignExperienceReward(experienceReward, goldAmount);
+                AssignExperienceReward(experienceReward, goldAmount, enemyKilledEventChannel);
 
                 prefab = PrefabUtility.SaveAsPrefabAsset(gameObject, prefabPath);
                 return prefab;
@@ -395,7 +401,7 @@ namespace MP.Editor
             StatsComponent stats = GetOrAdd<StatsComponent>(root);
             GetOrAdd<HealthComponent>(root);
             GetOrAdd<CharacterStateComponent>(root);
-            GetOrAdd<EnemyEntity>(root);
+            EnemyEntity enemyEntity = GetOrAdd<EnemyEntity>(root);
             TargetableComponent targetable = GetOrAdd<TargetableComponent>(root);
             GetOrAdd<NetworkHealthState>(root);
             GetOrAdd<WorldHealthLabel>(root);
@@ -412,13 +418,16 @@ namespace MP.Editor
             EnsureSpriteRenderer(root, spritePath, color, 1, scale);
             EnsureBoxCollider(root, Vector2.one);
 
+            EnemyKilledEventChannel enemyKilledEventChannel = EnsureEnemyKilledEventChannel();
+
             AssignBaseStats(stats, enemyStats);
             AssignTargetableTeam(targetable, TeamId.Enemy);
             AssignEnemyMovement(enemyMovement);
+            AssignEnemyKilledEventChannel(enemyEntity, enemyKilledEventChannel);
             AssignRangeIndicator(rangeIndicator, true, false, false);
             AssignDespawnOnDeath(despawnOnDeath);
             AssignGoldDrop(goldDrop, goldPrefab, goldAmount);
-            AssignExperienceReward(experienceReward, goldAmount);
+            AssignExperienceReward(experienceReward, goldAmount, enemyKilledEventChannel);
 
             PrefabUtility.SaveAsPrefabAsset(root, path);
             PrefabUtility.UnloadPrefabContents(root);
@@ -859,11 +868,19 @@ namespace MP.Editor
             serializedMovement.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void AssignExperienceReward(EnemyExperienceRewardComponent reward, int experienceAmount)
+        private static void AssignExperienceReward(EnemyExperienceRewardComponent reward, int experienceAmount, EnemyKilledEventChannel enemyKilledEventChannel)
         {
             var serializedReward = new SerializedObject(reward);
             serializedReward.FindProperty("experienceAmount").intValue = Mathf.Max(0, experienceAmount);
+            serializedReward.FindProperty("enemyKilledEventChannel").objectReferenceValue = enemyKilledEventChannel;
             serializedReward.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignEnemyKilledEventChannel(EnemyEntity enemy, EnemyKilledEventChannel channel)
+        {
+            var serializedEnemy = new SerializedObject(enemy);
+            serializedEnemy.FindProperty("enemyKilledEventChannel").objectReferenceValue = channel;
+            serializedEnemy.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void AssignDespawnOnDeath(DespawnOnDeathComponent despawnOnDeath)
@@ -1064,6 +1081,22 @@ namespace MP.Editor
             importer.textureType = TextureImporterType.Sprite;
             importer.spritePixelsPerUnit = 32f;
             importer.SaveAndReimport();
+        }
+
+        private static EnemyKilledEventChannel EnsureEnemyKilledEventChannel()
+        {
+            EnsureFolder("Assets/Project/Data", "Events");
+
+            EnemyKilledEventChannel channel = AssetDatabase.LoadAssetAtPath<EnemyKilledEventChannel>(EnemyKilledEventChannelPath);
+            if (channel != null)
+            {
+                return channel;
+            }
+
+            channel = ScriptableObject.CreateInstance<EnemyKilledEventChannel>();
+            AssetDatabase.CreateAsset(channel, EnemyKilledEventChannelPath);
+            AssetDatabase.SaveAssets();
+            return channel;
         }
 
         private static void EnsureFolder(string parent, string folderName)

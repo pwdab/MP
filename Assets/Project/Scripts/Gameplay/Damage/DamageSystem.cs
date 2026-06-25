@@ -11,19 +11,19 @@ namespace MP.Gameplay.Damage
             if (request.Target == null)
             {
                 Debug.LogWarning("Damage request ignored because target is missing.");
-                return new DamageResult(request.Attacker, null, request.BaseDamage, 0f, false);
+                return new DamageResult(request.Context, null, request.BaseDamage, 0f, false);
             }
 
             if (request.Target.TryGetComponent(out CharacterStateComponent state) && state.IsInvulnerable)
             {
-                return new DamageResult(request.Attacker, request.Target, request.BaseDamage, 0f, false);
+                return new DamageResult(request.Context, request.Target, request.BaseDamage, 0f, false);
             }
 
             float finalDamage = ApplyDefense(request.Target, request.BaseDamage);
-            float appliedDamage = request.Target.ApplyDamage(finalDamage, request.Attacker);
+            float appliedDamage = request.Target.ApplyDamage(finalDamage, request.Context);
 
             return new DamageResult(
-                request.Attacker,
+                request.Context,
                 request.Target,
                 request.BaseDamage,
                 appliedDamage,

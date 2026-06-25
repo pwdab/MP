@@ -51,7 +51,7 @@ namespace MP.Gameplay.Combat
             int attackCount = attackScheduler.Tick(deltaTime, stats.AttackSpeed);
             for (int i = 0; i < attackCount; i++)
             {
-                DamageSystem.ApplyDamage(new DamageRequest(gameObject, targetHealth, stats.AttackPower));
+                DamageSystem.ApplyDamage(new DamageRequest(DamageContext.FromInstigator(gameObject), targetHealth, stats.AttackPower));
             }
         }
 

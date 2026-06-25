@@ -1,18 +1,16 @@
 using MP.Gameplay.Entity;
-using UnityEngine;
-
 namespace MP.Gameplay.Damage
 {
     public readonly struct DamageRequest
     {
-        public DamageRequest(GameObject attacker, HealthComponent target, float baseDamage)
+        public DamageRequest(DamageContext context, HealthComponent target, float baseDamage)
         {
-            Attacker = attacker;
+            Context = context;
             Target = target;
             BaseDamage = baseDamage;
         }
 
-        public GameObject Attacker { get; }
+        public DamageContext Context { get; }
         public HealthComponent Target { get; }
         public float BaseDamage { get; }
     }
