@@ -12,7 +12,7 @@ namespace MP.UI
         [SerializeField] private Color damageTextColor = new(1f, 0.25f, 0.2f, 1f);
         [SerializeField] private Color healTextColor = new(0.25f, 1f, 0.35f, 1f);
         [SerializeField] private Color deathTextColor = new(0.85f, 0.85f, 0.85f, 1f);
-        [SerializeField] private Color flashColor = new(1f, 0.25f, 0.25f, 1f);
+        [SerializeField] private Color flashColor = Color.white;
         [SerializeField, Min(0.01f)] private float flashDuration = 0.12f;
 
         private HealthComponent health;
@@ -127,6 +127,20 @@ namespace MP.UI
             }
 
             flashCoroutine = StartCoroutine(FlashRoutine());
+        }
+
+        public void CancelFlash(bool restoreOriginalColor)
+        {
+            if (flashCoroutine != null)
+            {
+                StopCoroutine(flashCoroutine);
+                flashCoroutine = null;
+            }
+
+            if (restoreOriginalColor && spriteRenderer != null)
+            {
+                spriteRenderer.color = originalColor;
+            }
         }
 
         private IEnumerator FlashRoutine()

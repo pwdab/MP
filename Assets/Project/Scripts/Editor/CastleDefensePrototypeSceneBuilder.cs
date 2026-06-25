@@ -14,8 +14,12 @@ using Unity.Netcode.Components;
 using Unity.Netcode.Transports.UTP;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine.EventSystems;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem.UI;
+#endif
 
 namespace MP.Editor
 {
@@ -199,7 +203,7 @@ namespace MP.Editor
                 gameObject.AddComponent<EnemyCastleAttackComponent>();
                 gameObject.AddComponent<EnemyDetectionRangeIndicator>();
                 CombatRangeIndicator rangeIndicator = gameObject.AddComponent<CombatRangeIndicator>();
-                gameObject.AddComponent<DespawnOnDeathComponent>();
+                DespawnOnDeathComponent despawnOnDeath = gameObject.AddComponent<DespawnOnDeathComponent>();
                 EnemyGoldDropComponent goldDrop = gameObject.AddComponent<EnemyGoldDropComponent>();
                 EnemyExperienceRewardComponent experienceReward = gameObject.AddComponent<EnemyExperienceRewardComponent>();
                 gameObject.AddComponent<ItemDropComponent>();
@@ -210,6 +214,7 @@ namespace MP.Editor
                 AssignTargetableTeam(targetable, TeamId.Enemy);
                 AssignEnemyMovement(enemyMovement);
                 AssignRangeIndicator(rangeIndicator, true, false, false);
+                AssignDespawnOnDeath(despawnOnDeath);
                 AssignGoldDrop(goldDrop, goldPrefab, goldAmount);
                 AssignExperienceReward(experienceReward, goldAmount);
 
@@ -400,7 +405,7 @@ namespace MP.Editor
             GetOrAdd<EnemyCastleAttackComponent>(root);
             GetOrAdd<EnemyDetectionRangeIndicator>(root);
             CombatRangeIndicator rangeIndicator = GetOrAdd<CombatRangeIndicator>(root);
-            GetOrAdd<DespawnOnDeathComponent>(root);
+            DespawnOnDeathComponent despawnOnDeath = GetOrAdd<DespawnOnDeathComponent>(root);
             EnemyGoldDropComponent goldDrop = GetOrAdd<EnemyGoldDropComponent>(root);
             EnemyExperienceRewardComponent experienceReward = GetOrAdd<EnemyExperienceRewardComponent>(root);
             GetOrAdd<ItemDropComponent>(root);
@@ -411,6 +416,7 @@ namespace MP.Editor
             AssignTargetableTeam(targetable, TeamId.Enemy);
             AssignEnemyMovement(enemyMovement);
             AssignRangeIndicator(rangeIndicator, true, false, false);
+            AssignDespawnOnDeath(despawnOnDeath);
             AssignGoldDrop(goldDrop, goldPrefab, goldAmount);
             AssignExperienceReward(experienceReward, goldAmount);
 
@@ -540,8 +546,20 @@ namespace MP.Editor
 
         private static void CreateHud()
         {
-            var gameObject = new GameObject("CastleDefensePrototypeHud");
-            gameObject.AddComponent<CastleDefensePrototypeHud>();
+            var gameObject = new GameObject("PrototypeGameUI");
+            gameObject.AddComponent<PrototypeGameUI>();
+            CreateEventSystem();
+        }
+
+        private static void CreateEventSystem()
+        {
+            var gameObject = new GameObject("EventSystem");
+            gameObject.AddComponent<EventSystem>();
+#if ENABLE_INPUT_SYSTEM
+            gameObject.AddComponent<InputSystemUIInputModule>();
+#else
+            gameObject.AddComponent<StandaloneInputModule>();
+#endif
         }
 
         private static JobDefinition[] EnsureJobDefinitions()
@@ -776,7 +794,7 @@ namespace MP.Editor
         {
             var serializedStageFlow = new SerializedObject(stageFlow);
             serializedStageFlow.FindProperty("stageDefinition").objectReferenceValue = stageDefinition;
-            serializedStageFlow.FindProperty("autoStart").boolValue = true;
+            serializedStageFlow.FindProperty("autoStart").boolValue = false;
             serializedStageFlow.FindProperty("playerStartRadius").floatValue = 3f;
             serializedStageFlow.ApplyModifiedPropertiesWithoutUndo();
         }
@@ -846,6 +864,13 @@ namespace MP.Editor
             var serializedReward = new SerializedObject(reward);
             serializedReward.FindProperty("experienceAmount").intValue = Mathf.Max(0, experienceAmount);
             serializedReward.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignDespawnOnDeath(DespawnOnDeathComponent despawnOnDeath)
+        {
+            var serializedDespawn = new SerializedObject(despawnOnDeath);
+            serializedDespawn.FindProperty("fadeDuration").floatValue = 1f;
+            serializedDespawn.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void AssignRangeIndicator(CombatRangeIndicator indicator, bool showAutoAttackRange, bool showProjectileRanges, bool showActiveSkillRange = false)

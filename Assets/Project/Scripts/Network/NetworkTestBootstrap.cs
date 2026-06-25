@@ -44,36 +44,85 @@ namespace MP.Network
 
             if (WasStartHostPressedThisFrame() && !networkManager.IsListening)
             {
-                PrepareHostPortBeforeStart(networkManager);
-                RegisterNetworkPrefabs(networkManager);
-                networkManager.StartHost();
+                StartHost();
             }
 
             if (WasStartClientPressedThisFrame() && !networkManager.IsListening)
             {
-                ApplyLastHostPortBeforeClientStart(networkManager);
-                RegisterNetworkPrefabs(networkManager);
-                networkManager.StartClient();
+                StartClient();
             }
 
             if (WasShutdownPressedThisFrame() && networkManager.IsListening)
             {
-                UnregisterReviveMessageHandler(networkManager);
-                networkManager.Shutdown();
+                Shutdown();
             }
 
             if (WasRestartPrototypePressedThisFrame())
             {
-                RestartCurrentScene(networkManager);
+                RestartPrototype();
                 return;
             }
 
             if (WasRevivePlayerPressedThisFrame() && networkManager.IsListening && StageSimulationGate.CanAcceptPlayerInput())
             {
-                RequestReviveLocalPlayer(networkManager);
+                RequestReviveLocalPlayer();
             }
 
             UpdateReviveMessageHandler(networkManager);
+        }
+
+        public bool StartHost()
+        {
+            NetworkManager networkManager = NetworkManager.Singleton;
+            if (networkManager == null || networkManager.IsListening)
+            {
+                return false;
+            }
+
+            PrepareHostPortBeforeStart(networkManager);
+            RegisterNetworkPrefabs(networkManager);
+            return networkManager.StartHost();
+        }
+
+        public bool StartClient()
+        {
+            NetworkManager networkManager = NetworkManager.Singleton;
+            if (networkManager == null || networkManager.IsListening)
+            {
+                return false;
+            }
+
+            ApplyLastHostPortBeforeClientStart(networkManager);
+            RegisterNetworkPrefabs(networkManager);
+            return networkManager.StartClient();
+        }
+
+        public void Shutdown()
+        {
+            NetworkManager networkManager = NetworkManager.Singleton;
+            if (networkManager == null || !networkManager.IsListening)
+            {
+                return;
+            }
+
+            UnregisterReviveMessageHandler(networkManager);
+            networkManager.Shutdown();
+        }
+
+        public void RestartPrototype()
+        {
+            RestartCurrentScene(NetworkManager.Singleton);
+        }
+
+        public void RequestReviveLocalPlayer()
+        {
+            NetworkManager networkManager = NetworkManager.Singleton;
+            if (networkManager == null || !networkManager.IsListening || !StageSimulationGate.CanAcceptPlayerInput())
+            {
+                return;
+            }
+
+            RequestReviveLocalPlayer(networkManager);
         }
 
         private NetworkTestCommands GetTestCommands()

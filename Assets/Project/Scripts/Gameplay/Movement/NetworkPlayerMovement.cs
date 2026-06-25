@@ -16,6 +16,7 @@ namespace MP.Gameplay.Movement
     public sealed class NetworkPlayerMovement : NetworkBehaviour
     {
         [SerializeField] private float predictionSnapThreshold = 1.25f;
+        [SerializeField] private float predictionCorrectionRate = 12f;
         [SerializeField] private float maxClientDeltaTime = 0.05f;
 
         private readonly NetworkVariable<Vector2> serverPosition = new(Vector2.zero, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -63,7 +64,7 @@ namespace MP.Gameplay.Movement
             {
                 if (!IsServer)
                 {
-                    SnapPredictionIfTooFar();
+                    ReconcilePrediction();
                 }
 
                 return;
@@ -73,7 +74,7 @@ namespace MP.Gameplay.Movement
             {
                 if (!IsServer)
                 {
-                    SnapPredictionIfTooFar();
+                    ReconcilePrediction();
                 }
 
                 return;
@@ -89,7 +90,7 @@ namespace MP.Gameplay.Movement
                 float deltaTime = Time.deltaTime;
                 MoveLocal(input, deltaTime);
                 MoveServerRpc(input, deltaTime);
-                SnapPredictionIfTooFar();
+                ReconcilePrediction();
             }
         }
 
@@ -151,16 +152,18 @@ namespace MP.Gameplay.Movement
             }
         }
 
-        private void SnapPredictionIfTooFar()
+        private void ReconcilePrediction()
         {
             Vector3 authoritativePosition = new(serverPosition.Value.x, serverPosition.Value.y, transform.position.z);
             Vector3 delta = authoritativePosition - transform.position;
-            if (delta.sqrMagnitude <= predictionSnapThreshold * predictionSnapThreshold)
+            if (delta.sqrMagnitude > predictionSnapThreshold * predictionSnapThreshold)
             {
+                transform.position = authoritativePosition;
                 return;
             }
 
-            transform.position = authoritativePosition;
+            float correction = Mathf.Clamp01(predictionCorrectionRate * Time.deltaTime);
+            transform.position += delta * correction;
         }
 
         private static Vector2 SanitizeInput(Vector2 input)

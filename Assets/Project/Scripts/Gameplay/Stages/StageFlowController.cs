@@ -2,17 +2,22 @@ using System;
 using MP.Gameplay.Combat;
 using MP.Gameplay.Entity;
 using MP.Network;
+using Unity.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace MP.Gameplay.Stages
 {
     public sealed class StageFlowController : MonoBehaviour
     {
+        private const string StageSnapshotMessageName = "MP.StageFlow.Snapshot";
+
         [SerializeField] private StageDefinition stageDefinition;
         [SerializeField] private CastleEntity castle;
         [SerializeField] private EnemySpawner enemySpawner;
-        [SerializeField] private bool autoStart = true;
+        [SerializeField] private bool autoStart;
         [SerializeField] private float playerStartRadius = 3f;
+        [SerializeField, Min(0.02f)] private float snapshotSendInterval = 0.1f;
 
         private float stageElapsedTime;
         private float waveElapsedTime;
@@ -20,6 +25,9 @@ namespace MP.Gameplay.Stages
         private int currentGold;
         private int currentExperience;
         private bool bossSpawned;
+        private bool hasCurrentWave;
+        private bool registeredSnapshotHandler;
+        private float snapshotSendTimer;
 
         public event Action<StageState> StageStateChanged;
         public event Action<int, WaveDefinition> WaveStarted;
@@ -45,6 +53,7 @@ namespace MP.Gameplay.Stages
             }
 
             currentGold += Mathf.Max(0, amount);
+            PublishStageSnapshot();
         }
 
         public bool TrySpendGold(int amount)
@@ -61,6 +70,7 @@ namespace MP.Gameplay.Stages
             }
 
             currentGold -= clampedAmount;
+            PublishStageSnapshot();
             return true;
         }
 
@@ -72,6 +82,7 @@ namespace MP.Gameplay.Stages
             }
 
             currentExperience += Mathf.Max(0, amount);
+            PublishStageSnapshot();
         }
 
         private void Awake()
@@ -87,10 +98,13 @@ namespace MP.Gameplay.Stages
         private void OnDisable()
         {
             UnsubscribeCastle();
+            UnregisterSnapshotHandler(NetworkManager.Singleton);
         }
 
         private void Update()
         {
+            UpdateSnapshotMessaging();
+
             if (!NetworkContext.HasServerAuthority())
             {
                 return;
@@ -110,6 +124,7 @@ namespace MP.Gameplay.Stages
             stageElapsedTime += Time.deltaTime;
             waveElapsedTime += Time.deltaTime;
             TickWave();
+            TickSnapshotPublishing();
         }
 
         public void StartStage()
@@ -129,6 +144,7 @@ namespace MP.Gameplay.Stages
             currentGold = stageDefinition.StartingGold;
             currentExperience = stageDefinition.StartingExperience;
             bossSpawned = false;
+            hasCurrentWave = false;
             SetStageState(StageState.Playing);
             PositionPlayersAroundCastle();
             BeginNextWave();
@@ -180,11 +196,13 @@ namespace MP.Gameplay.Stages
             }
 
             CurrentWave = wave;
+            hasCurrentWave = true;
             waveElapsedTime = 0f;
             bossSpawned = false;
             CurrentWaveState = WaveState.Spawning;
             enemySpawner?.BeginWave(currentWaveIndex, wave, castle);
             WaveStarted?.Invoke(currentWaveIndex, wave);
+            PublishStageSnapshot();
         }
 
         private void CompleteCurrentWave()
@@ -211,6 +229,7 @@ namespace MP.Gameplay.Stages
             if (shouldPauseAfterBoss)
             {
                 CurrentWave = null;
+                hasCurrentWave = false;
                 SetStageState(StageState.Rest);
                 return;
             }
@@ -222,6 +241,7 @@ namespace MP.Gameplay.Stages
         {
             enemySpawner?.StopSpawning();
             CurrentWave = null;
+            hasCurrentWave = false;
             CurrentWaveState = WaveState.Idle;
             SetStageState(StageState.Cleared);
         }
@@ -230,6 +250,7 @@ namespace MP.Gameplay.Stages
         {
             enemySpawner?.StopSpawning();
             CurrentWave = null;
+            hasCurrentWave = false;
             CurrentWaveState = WaveState.Idle;
             SetStageState(StageState.Failed);
         }
@@ -308,6 +329,121 @@ namespace MP.Gameplay.Stages
             }
         }
 
+        private void TickSnapshotPublishing()
+        {
+            snapshotSendTimer += Time.deltaTime;
+            if (snapshotSendTimer < snapshotSendInterval)
+            {
+                return;
+            }
+
+            snapshotSendTimer = 0f;
+            PublishStageSnapshot();
+        }
+
+        private void UpdateSnapshotMessaging()
+        {
+            NetworkManager networkManager = NetworkManager.Singleton;
+            if (networkManager == null || !networkManager.IsListening || networkManager.CustomMessagingManager == null)
+            {
+                UnregisterSnapshotHandler(networkManager);
+                return;
+            }
+
+            if (networkManager.IsServer)
+            {
+                UnregisterSnapshotHandler(networkManager);
+                return;
+            }
+
+            if (registeredSnapshotHandler)
+            {
+                return;
+            }
+
+            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(StageSnapshotMessageName, OnStageSnapshotMessage);
+            registeredSnapshotHandler = true;
+        }
+
+        private void UnregisterSnapshotHandler(NetworkManager networkManager)
+        {
+            if (!registeredSnapshotHandler || networkManager == null || networkManager.CustomMessagingManager == null)
+            {
+                registeredSnapshotHandler = false;
+                return;
+            }
+
+            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(StageSnapshotMessageName);
+            registeredSnapshotHandler = false;
+        }
+
+        private void PublishStageSnapshot()
+        {
+            NetworkManager networkManager = NetworkManager.Singleton;
+            if (!NetworkContext.HasServerAuthority() || networkManager == null || !networkManager.IsListening || networkManager.CustomMessagingManager == null)
+            {
+                return;
+            }
+
+            foreach (ulong clientId in networkManager.ConnectedClientsIds)
+            {
+                if (clientId == NetworkManager.ServerClientId)
+                {
+                    continue;
+                }
+
+                using var writer = new FastBufferWriter(64, Allocator.Temp);
+                writer.WriteValueSafe((int)CurrentStageState);
+                writer.WriteValueSafe((int)CurrentWaveState);
+                writer.WriteValueSafe(currentWaveIndex);
+                writer.WriteValueSafe(hasCurrentWave);
+                writer.WriteValueSafe(stageElapsedTime);
+                writer.WriteValueSafe(waveElapsedTime);
+                writer.WriteValueSafe(currentGold);
+                writer.WriteValueSafe(currentExperience);
+                networkManager.CustomMessagingManager.SendNamedMessage(StageSnapshotMessageName, clientId, writer);
+            }
+        }
+
+        private void OnStageSnapshotMessage(ulong _, FastBufferReader reader)
+        {
+            reader.ReadValueSafe(out int stageStateValue);
+            reader.ReadValueSafe(out int waveStateValue);
+            reader.ReadValueSafe(out int waveIndex);
+            reader.ReadValueSafe(out bool snapshotHasCurrentWave);
+            reader.ReadValueSafe(out float snapshotStageElapsedTime);
+            reader.ReadValueSafe(out float snapshotWaveElapsedTime);
+            reader.ReadValueSafe(out int snapshotGold);
+            reader.ReadValueSafe(out int snapshotExperience);
+
+            StageState nextStageState = Enum.IsDefined(typeof(StageState), stageStateValue) ? (StageState)stageStateValue : StageState.NotStarted;
+            WaveState nextWaveState = Enum.IsDefined(typeof(WaveState), waveStateValue) ? (WaveState)waveStateValue : WaveState.Idle;
+            bool stageStateChanged = CurrentStageState != nextStageState;
+
+            CurrentStageState = nextStageState;
+            CurrentWaveState = nextWaveState;
+            currentWaveIndex = waveIndex;
+            hasCurrentWave = snapshotHasCurrentWave;
+            stageElapsedTime = Mathf.Max(0f, snapshotStageElapsedTime);
+            waveElapsedTime = Mathf.Max(0f, snapshotWaveElapsedTime);
+            currentGold = Mathf.Max(0, snapshotGold);
+            currentExperience = Mathf.Max(0, snapshotExperience);
+
+            if (hasCurrentWave && stageDefinition != null && stageDefinition.TryGetWave(currentWaveIndex, out WaveDefinition wave))
+            {
+                CurrentWave = wave;
+            }
+            else
+            {
+                CurrentWave = null;
+            }
+
+            if (stageStateChanged)
+            {
+                StageStateChanged?.Invoke(CurrentStageState);
+            }
+        }
+
         private void SetStageState(StageState state)
         {
             if (CurrentStageState == state)
@@ -317,6 +453,7 @@ namespace MP.Gameplay.Stages
 
             CurrentStageState = state;
             StageStateChanged?.Invoke(state);
+            PublishStageSnapshot();
         }
     }
 }

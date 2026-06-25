@@ -19,6 +19,7 @@ namespace MP.Gameplay.Combat
         [SerializeField] private float knockbackDuration = 0.5f;
 
         private Vector2 direction;
+        private Vector2 spawnPosition;
         private TeamId ownerTeam;
         private float damage;
         private float maxDistance;
@@ -28,14 +29,18 @@ namespace MP.Gameplay.Combat
         private double serverSpawnTime;
         private bool initialized;
         private NetworkTransform networkTransform;
+        private SpriteRenderer spriteRenderer;
 
         private void Awake()
         {
             networkTransform = GetComponent<NetworkTransform>();
+            spriteRenderer = GetComponent<SpriteRenderer>();
         }
 
         public override void OnNetworkSpawn()
         {
+            SetVisualVisible(true);
+
             if (NetworkContext.HasServerAuthority())
             {
                 return;
@@ -55,6 +60,7 @@ namespace MP.Gameplay.Combat
         public void InitializeServer(Vector2 spawnDirection, TeamId team, float projectileDamage, float projectileMaxDistance, GameObject projectileDamageSource)
         {
             direction = IsFinite(spawnDirection) && spawnDirection.sqrMagnitude > 0.0001f ? spawnDirection.normalized : Vector2.right;
+            spawnPosition = transform.position;
             ownerTeam = team;
             damage = Mathf.Max(0f, projectileDamage);
             maxDistance = Mathf.Max(0f, projectileMaxDistance);
@@ -72,23 +78,25 @@ namespace MP.Gameplay.Combat
                 return;
             }
 
-            InitializeClientVisualClientRpc(direction, serverSpawnTime);
+            InitializeClientVisualClientRpc(spawnPosition, direction, serverSpawnTime, maxDistance);
         }
 
         [ClientRpc]
-        private void InitializeClientVisualClientRpc(Vector2 spawnDirection, double spawnTime)
+        private void InitializeClientVisualClientRpc(Vector2 serverSpawnPosition, Vector2 spawnDirection, double spawnTime, float projectileMaxDistance)
         {
             if (NetworkContext.HasServerAuthority())
             {
                 return;
             }
 
+            spawnPosition = IsFinite(serverSpawnPosition) ? serverSpawnPosition : transform.position;
             direction = IsFinite(spawnDirection) && spawnDirection.sqrMagnitude > 0.0001f ? spawnDirection.normalized : Vector2.right;
             serverSpawnTime = spawnTime;
+            maxDistance = Mathf.Max(0f, projectileMaxDistance);
 
             float elapsedTime = GetElapsedTimeSinceServerSpawn();
             float moveDistance = Mathf.Max(0f, speed) * elapsedTime;
-            transform.position += (Vector3)(direction * moveDistance);
+            transform.position = spawnPosition + direction * moveDistance;
             traveledDistance = moveDistance;
             remainingLifetime = Mathf.Max(0f, lifetime - elapsedTime);
             initialized = true;
@@ -140,6 +148,12 @@ namespace MP.Gameplay.Combat
             if (NetworkContext.HasServerAuthority() && traveledDistance >= maxDistance)
             {
                 DespawnOrDestroyServerOnly();
+                return;
+            }
+
+            if (!NetworkContext.HasServerAuthority() && traveledDistance >= maxDistance)
+            {
+                StopClientVisualOrDespawnServer();
             }
         }
 
@@ -151,6 +165,8 @@ namespace MP.Gameplay.Combat
             {
                 networkTransform.enabled = true;
             }
+
+            SetVisualVisible(true);
         }
 
         private bool TryHitTarget()
@@ -226,6 +242,15 @@ namespace MP.Gameplay.Combat
             }
 
             initialized = false;
+            SetVisualVisible(false);
+        }
+
+        private void SetVisualVisible(bool visible)
+        {
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.enabled = visible;
+            }
         }
 
         private float GetElapsedTimeSinceServerSpawn()
