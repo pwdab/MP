@@ -47,6 +47,23 @@ namespace MP.Gameplay.Stages
             currentGold += Mathf.Max(0, amount);
         }
 
+        public bool TrySpendGold(int amount)
+        {
+            if (!NetworkContext.HasServerAuthority())
+            {
+                return false;
+            }
+
+            int clampedAmount = Mathf.Max(0, amount);
+            if (currentGold < clampedAmount)
+            {
+                return false;
+            }
+
+            currentGold -= clampedAmount;
+            return true;
+        }
+
         public void AddExperience(int amount)
         {
             if (!NetworkContext.HasServerAuthority())

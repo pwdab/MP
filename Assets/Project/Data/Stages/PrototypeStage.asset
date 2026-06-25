@@ -18,9 +18,20 @@ MonoBehaviour:
   startingExperience: 0
   waves:
   - displayName: Wave 1
-    waveDuration: 25
-    spawnDuration: 18
-    spawnInterval: 2.5
+    waveDuration: 18
+    spawnDuration: 12
+    spawnInterval: 2.6
+    maxAliveEnemies: 8
+    bossWave: 0
+    bossPrefab: {fileID: 0}
+    bossSpawnTime: 0
+    spawnEntries:
+    - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
+      weight: 1
+  - displayName: Wave 2
+    waveDuration: 18
+    spawnDuration: 13
+    spawnInterval: 2.3
     maxAliveEnemies: 10
     bossWave: 0
     bossPrefab: {fileID: 0}
@@ -28,20 +39,42 @@ MonoBehaviour:
     spawnEntries:
     - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
       weight: 1
-  - displayName: Mid Boss Wave
-    waveDuration: 35
-    spawnDuration: 24
-    spawnInterval: 1.8
-    maxAliveEnemies: 14
-    bossWave: 1
-    bossPrefab: {fileID: 7282609900362273682, guid: b7b934616ea905e4285b68ddb20c0b07, type: 3}
-    bossSpawnTime: 8
+  - displayName: Wave 3
+    waveDuration: 18
+    spawnDuration: 14
+    spawnInterval: 2
+    maxAliveEnemies: 12
+    bossWave: 0
+    bossPrefab: {fileID: 0}
+    bossSpawnTime: 0
     spawnEntries:
     - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
       weight: 1
-  - displayName: Wave 3
-    waveDuration: 30
-    spawnDuration: 22
+  - displayName: Wave 4
+    waveDuration: 18
+    spawnDuration: 15
+    spawnInterval: 1.8
+    maxAliveEnemies: 14
+    bossWave: 0
+    bossPrefab: {fileID: 0}
+    bossSpawnTime: 0
+    spawnEntries:
+    - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
+      weight: 1
+  - displayName: Mid Boss Wave
+    waveDuration: 18
+    spawnDuration: 14
+    spawnInterval: 1.7
+    maxAliveEnemies: 16
+    bossWave: 1
+    bossPrefab: {fileID: 7282609900362273682, guid: b7b934616ea905e4285b68ddb20c0b07, type: 3}
+    bossSpawnTime: 6
+    spawnEntries:
+    - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
+      weight: 1
+  - displayName: Wave 6
+    waveDuration: 18
+    spawnDuration: 15
     spawnInterval: 1.6
     maxAliveEnemies: 16
     bossWave: 0
@@ -50,14 +83,47 @@ MonoBehaviour:
     spawnEntries:
     - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
       weight: 1
-  - displayName: Final Boss Wave
-    waveDuration: 45
-    spawnDuration: 30
-    spawnInterval: 1.4
+  - displayName: Wave 7
+    waveDuration: 18
+    spawnDuration: 15
+    spawnInterval: 1.45
     maxAliveEnemies: 18
+    bossWave: 0
+    bossPrefab: {fileID: 0}
+    bossSpawnTime: 0
+    spawnEntries:
+    - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
+      weight: 1
+  - displayName: Wave 8
+    waveDuration: 18
+    spawnDuration: 16
+    spawnInterval: 1.3
+    maxAliveEnemies: 20
+    bossWave: 0
+    bossPrefab: {fileID: 0}
+    bossSpawnTime: 0
+    spawnEntries:
+    - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
+      weight: 1
+  - displayName: Wave 9
+    waveDuration: 18
+    spawnDuration: 16
+    spawnInterval: 1.15
+    maxAliveEnemies: 22
+    bossWave: 0
+    bossPrefab: {fileID: 0}
+    bossSpawnTime: 0
+    spawnEntries:
+    - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
+      weight: 1
+  - displayName: Final Boss Wave
+    waveDuration: 18
+    spawnDuration: 16
+    spawnInterval: 1
+    maxAliveEnemies: 24
     bossWave: 1
     bossPrefab: {fileID: 7282609900362273682, guid: b7b934616ea905e4285b68ddb20c0b07, type: 3}
-    bossSpawnTime: 10
+    bossSpawnTime: 5
     spawnEntries:
     - enemyPrefab: {fileID: 8977295950724716183, guid: 4d2da81e58437094d90e4806c0e54264, type: 3}
       weight: 1

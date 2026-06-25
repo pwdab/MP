@@ -39,6 +39,9 @@ GameObject:
   - component: {fileID: 75775577231475329}
   - component: {fileID: 8993919224404496053}
   - component: {fileID: 5629989341080424402}
+  - component: {fileID: 2457320684858703656}
+  - component: {fileID: 2795097646295028619}
+  - component: {fileID: 8996575056190779477}
   m_Layer: 0
   m_Name: PrototypePlayer
   m_TagString: Untagged
@@ -632,3 +635,46 @@ MonoBehaviour:
   team: 1
   projectilePrefab: {fileID: 4499161251396626233, guid: fa37293a60fdaca4d9d791b4d92d7a8a, type: 3}
   firePoint: {fileID: 0}
+--- !u!114 &2457320684858703656
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9069861629422310843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 623fe2eee1944f41bda7e9a3c2e8a827, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Movement.PlayerKnockbackComponent
+  defaultDistance: 1
+  defaultDuration: 0.5
+  immunityDuration: 1
+--- !u!114 &2795097646295028619
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9069861629422310843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58c84b8465f34d3d96e442f2f31b13f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.PlayerEnemyContactDamageComponent
+  contactDamage: 5
+  knockbackDistance: 1
+  knockbackDuration: 0.5
+--- !u!114 &8996575056190779477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9069861629422310843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7df4e8333a4b425aaffb48aa3707dad6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Movement.PlayerSeparationComponent
+  padding: 0.02

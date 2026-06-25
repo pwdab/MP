@@ -288,6 +288,9 @@ namespace MP.Editor
                 NetworkProjectileLauncher launcher = gameObject.AddComponent<NetworkProjectileLauncher>();
                 PlayerDirectionalBasicAttackComponent basicAttack = gameObject.AddComponent<PlayerDirectionalBasicAttackComponent>();
                 PlayerActiveSkillComponent activeSkill = gameObject.AddComponent<PlayerActiveSkillComponent>();
+                gameObject.AddComponent<PlayerKnockbackComponent>();
+                gameObject.AddComponent<PlayerEnemyContactDamageComponent>();
+                gameObject.AddComponent<PlayerSeparationComponent>();
                 CombatRangeIndicator rangeIndicator = gameObject.AddComponent<CombatRangeIndicator>();
                 gameObject.AddComponent<PlayerMoveDirectionDebugIndicator>();
                 gameObject.AddComponent<LocalCameraFollow>();
@@ -345,6 +348,9 @@ namespace MP.Editor
             RemoveIfExists<CombatComponent>(root);
             PlayerDirectionalBasicAttackComponent basicAttack = GetOrAdd<PlayerDirectionalBasicAttackComponent>(root);
             PlayerActiveSkillComponent activeSkill = GetOrAdd<PlayerActiveSkillComponent>(root);
+            GetOrAdd<PlayerKnockbackComponent>(root);
+            GetOrAdd<PlayerEnemyContactDamageComponent>(root);
+            GetOrAdd<PlayerSeparationComponent>(root);
             CombatRangeIndicator rangeIndicator = GetOrAdd<CombatRangeIndicator>(root);
             GetOrAdd<PlayerMoveDirectionDebugIndicator>(root);
             GetOrAdd<LocalCameraFollow>(root);
@@ -708,11 +714,17 @@ namespace MP.Editor
             serializedDefinition.FindProperty("startingExperience").intValue = 0;
 
             SerializedProperty waves = serializedDefinition.FindProperty("waves");
-            waves.arraySize = 4;
-            AssignWave(waves.GetArrayElementAtIndex(0), "Wave 1", 25f, 18f, 2.5f, 10, false, null, 0f, enemyPrefab);
-            AssignWave(waves.GetArrayElementAtIndex(1), "Mid Boss Wave", 35f, 24f, 1.8f, 14, true, bossPrefab, 8f, enemyPrefab);
-            AssignWave(waves.GetArrayElementAtIndex(2), "Wave 3", 30f, 22f, 1.6f, 16, false, null, 0f, enemyPrefab);
-            AssignWave(waves.GetArrayElementAtIndex(3), "Final Boss Wave", 45f, 30f, 1.4f, 18, true, bossPrefab, 10f, enemyPrefab);
+            waves.arraySize = 10;
+            AssignWave(waves.GetArrayElementAtIndex(0), "Wave 1", 18f, 12f, 2.6f, 8, false, null, 0f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(1), "Wave 2", 18f, 13f, 2.3f, 10, false, null, 0f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(2), "Wave 3", 18f, 14f, 2.0f, 12, false, null, 0f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(3), "Wave 4", 18f, 15f, 1.8f, 14, false, null, 0f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(4), "Mid Boss Wave", 18f, 14f, 1.7f, 16, true, bossPrefab, 6f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(5), "Wave 6", 18f, 15f, 1.6f, 16, false, null, 0f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(6), "Wave 7", 18f, 15f, 1.45f, 18, false, null, 0f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(7), "Wave 8", 18f, 16f, 1.3f, 20, false, null, 0f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(8), "Wave 9", 18f, 16f, 1.15f, 22, false, null, 0f, enemyPrefab);
+            AssignWave(waves.GetArrayElementAtIndex(9), "Final Boss Wave", 18f, 16f, 1.0f, 24, true, bossPrefab, 5f, enemyPrefab);
 
             serializedDefinition.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(definition);

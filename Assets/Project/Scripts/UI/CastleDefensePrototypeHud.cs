@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using MP.Gameplay.Entity;
 using MP.Gameplay.Stages;
 using MP.Gameplay.Combat;
+using MP.Gameplay.Stats;
 using MP.Network;
 using MP.Progression.Level;
 using MP.Progression.Jobs;
@@ -20,6 +21,9 @@ namespace MP.UI
         private PlayerActiveSkillComponent localActiveSkill;
         private Vector2 scrollPosition;
 
+        private static readonly object CastleUpgradeSource = new();
+        private static readonly object PlayerAttackUpgradeSource = new();
+
         private void OnGUI()
         {
             float width = Mathf.Clamp(Screen.width - 20f, 260f, 430f);
@@ -33,6 +37,7 @@ namespace MP.UI
             DrawCastleState();
             DrawLocalPlayerState();
             DrawEnemyState();
+            DrawResultState();
 
             GUILayout.Space(8f);
             GUILayout.Label("Ctrl+H Host | Ctrl+C Client | Ctrl+S Shutdown");
@@ -85,6 +90,8 @@ namespace MP.UI
 
             if (stageFlow.CurrentStageState == StageState.Rest && NetworkContext.HasServerAuthority())
             {
+                DrawRestPhaseControls();
+
                 if (GUILayout.Button("Start Next Wave"))
                 {
                     stageFlow.ContinueFromRest();
@@ -140,7 +147,13 @@ namespace MP.UI
             {
                 if (jobs[i] != null)
                 {
+                    GUILayout.BeginHorizontal();
                     GUILayout.Label($"{i + 1}. {jobs[i].DisplayName}");
+                    if (GUILayout.Button("Select", GUILayout.Width(64f)))
+                    {
+                        localJobSelector.SelectJob(i);
+                    }
+                    GUILayout.EndHorizontal();
                 }
             }
         }
@@ -186,6 +199,97 @@ namespace MP.UI
         {
             FindLocalPlayerComponents();
             return localProgression != null ? localProgression.Experience.ToString() : "-";
+        }
+
+        private void DrawRestPhaseControls()
+        {
+            GUILayout.Space(6f);
+            GUILayout.Label("Rest Phase Upgrades");
+            DrawUpgradeButton("5G Castle +50 Max HP", ApplyCastleUpgrade);
+            DrawUpgradeButton("5G Players +2 Attack", ApplyPlayerAttackUpgrade);
+            DrawUpgradeButton("5G Space Cooldown -1s", ApplySkillCooldownUpgrade);
+        }
+
+        private void DrawUpgradeButton(string label, System.Action apply)
+        {
+            bool canBuy = stageFlow != null && stageFlow.CurrentGold >= 5;
+            GUI.enabled = canBuy;
+            if (GUILayout.Button(label))
+            {
+                apply?.Invoke();
+            }
+
+            GUI.enabled = true;
+        }
+
+        private void ApplyCastleUpgrade()
+        {
+            if (stageFlow == null || castle == null || !stageFlow.TrySpendGold(5))
+            {
+                return;
+            }
+
+            if (castle.TryGetComponent(out StatsComponent stats))
+            {
+                stats.AddFlatModifier(StatId.MaxHealth, 50f, CastleUpgradeSource);
+                castle.Health.RestoreToFullHealth();
+            }
+        }
+
+        private void ApplyPlayerAttackUpgrade()
+        {
+            if (stageFlow == null || !stageFlow.TrySpendGold(5))
+            {
+                return;
+            }
+
+            PlayerEntity[] players = FindObjectsByType<PlayerEntity>(FindObjectsSortMode.None);
+            for (int i = 0; i < players.Length; i++)
+            {
+                if (players[i] != null && players[i].TryGetComponent(out StatsComponent stats))
+                {
+                    stats.AddFlatModifier(StatId.AttackPower, 2f, PlayerAttackUpgradeSource);
+                }
+            }
+        }
+
+        private void ApplySkillCooldownUpgrade()
+        {
+            if (stageFlow == null || !stageFlow.TrySpendGold(5))
+            {
+                return;
+            }
+
+            PlayerActiveSkillComponent[] skills = FindObjectsByType<PlayerActiveSkillComponent>(FindObjectsSortMode.None);
+            for (int i = 0; i < skills.Length; i++)
+            {
+                if (skills[i] != null)
+                {
+                    skills[i].AddCooldownReductionServer(1f);
+                    skills[i].ResetCooldownServer();
+                }
+            }
+        }
+
+        private void DrawResultState()
+        {
+            if (stageFlow == null)
+            {
+                return;
+            }
+
+            if (stageFlow.CurrentStageState != StageState.Cleared && stageFlow.CurrentStageState != StageState.Failed)
+            {
+                return;
+            }
+
+            GUILayout.Space(8f);
+            GUILayout.Label(stageFlow.CurrentStageState == StageState.Cleared ? "RESULT: CLEAR" : "RESULT: FAILED");
+            GUILayout.Label($"Reached Wave: {stageFlow.CurrentWaveNumber}/{stageFlow.WaveCount}");
+            GUILayout.Label($"Play Time: {stageFlow.StageElapsedTime:0.0}s");
+            GUILayout.Label($"Gold: {stageFlow.CurrentGold}");
+            GUILayout.Label($"Player EXP: {GetLocalPlayerExperienceText()}");
+            GUILayout.Label("Press Ctrl+R to restart.");
         }
 
         private void DrawDebugLegend()

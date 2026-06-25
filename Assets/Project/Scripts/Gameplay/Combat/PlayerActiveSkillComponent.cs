@@ -22,11 +22,12 @@ namespace MP.Gameplay.Combat
         [SerializeField] private float debugEffectDuration = 1.5f;
 
         private readonly NetworkVariable<float> remainingCooldown = new(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        private readonly NetworkVariable<float> cooldownReduction = new(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
         private StatsComponent stats;
         private CharacterStateComponent characterState;
 
-        public float Cooldown => Mathf.Max(0f, cooldown);
+        public float Cooldown => Mathf.Max(1f, cooldown - cooldownReduction.Value);
         public float Radius => Mathf.Max(0f, radius);
         public float RemainingCooldown => remainingCooldown.Value;
         public bool IsReady => remainingCooldown.Value <= 0f;
@@ -65,6 +66,17 @@ namespace MP.Gameplay.Combat
             {
                 remainingCooldown.Value = 0f;
             }
+        }
+
+        public void AddCooldownReductionServer(float amount)
+        {
+            if (!IsServer || amount <= 0f)
+            {
+                return;
+            }
+
+            cooldownReduction.Value = Mathf.Max(0f, cooldownReduction.Value + amount);
+            remainingCooldown.Value = Mathf.Min(remainingCooldown.Value, Cooldown);
         }
 
         [ServerRpc]

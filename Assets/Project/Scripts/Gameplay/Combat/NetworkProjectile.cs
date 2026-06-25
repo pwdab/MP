@@ -1,5 +1,6 @@
 using MP.Gameplay.Damage;
 using MP.Gameplay.Entity;
+using MP.Gameplay.Movement;
 using MP.Gameplay.Stages;
 using MP.Network;
 using Unity.Netcode;
@@ -14,6 +15,8 @@ namespace MP.Gameplay.Combat
         [SerializeField] private float speed = 8f;
         [SerializeField] private float radius = 0.18f;
         [SerializeField] private float lifetime = 2f;
+        [SerializeField] private float knockbackDistance = 1f;
+        [SerializeField] private float knockbackDuration = 0.5f;
 
         private Vector2 direction;
         private TeamId ownerTeam;
@@ -176,10 +179,24 @@ namespace MP.Gameplay.Combat
                 }
 
                 DamageSystem.ApplyDamage(new DamageRequest(damageSource != null ? damageSource : gameObject, target.Health, damage));
+                ApplyKnockbackIfNeeded(target);
                 return true;
             }
 
             return false;
+        }
+
+        private void ApplyKnockbackIfNeeded(TargetableComponent target)
+        {
+            if (ownerTeam != TeamId.Enemy || target == null || target.Team != TeamId.Player)
+            {
+                return;
+            }
+
+            if (target.TryGetComponent(out PlayerKnockbackComponent knockback))
+            {
+                knockback.TryApplyKnockback(direction, knockbackDistance, knockbackDuration);
+            }
         }
 
         private void DespawnOrDestroyServerOnly()
