@@ -1,12 +1,11 @@
 using MP.Gameplay.Combat;
 using MP.Gameplay.Entity;
-using MP.Gameplay.Movement;
-using MP.Network;
+using System;
 using UnityEngine;
 
 namespace MP.Gameplay.Stages
 {
-    public sealed class EnemySpawner : MonoBehaviour
+    public sealed class EnemySpawner : MonoBehaviour, IEnemyWaveSpawner
     {
         [SerializeField] private GameObject enemyPrefab;
         [SerializeField] private CastleEntity targetCastle;
@@ -20,6 +19,9 @@ namespace MP.Gameplay.Stages
         private int currentWaveIndex = -1;
         private WaveDefinition currentWave;
         private bool isSpawning;
+        private bool tickInUpdate = true;
+
+        public event Action<GameObject> EnemySpawned;
 
         private void Awake()
         {
@@ -39,6 +41,19 @@ namespace MP.Gameplay.Stages
 
         private void Update()
         {
+            if (tickInUpdate)
+            {
+                Tick(Time.deltaTime);
+            }
+        }
+
+        public void SetTickInUpdate(bool value)
+        {
+            tickInUpdate = value;
+        }
+
+        public void Tick(float deltaTime)
+        {
             if (!isSpawning)
             {
                 return;
@@ -49,12 +64,12 @@ namespace MP.Gameplay.Stages
                 targetCastle = FindFirstObjectByType<CastleEntity>();
             }
 
-            if (!NetworkContext.IsNetworkActive || !NetworkContext.HasServerAuthority() || enemyPrefab == null || targetCastle == null || targetCastle.IsDestroyed)
+            if (enemyPrefab == null || targetCastle == null || targetCastle.IsDestroyed)
             {
                 return;
             }
 
-            spawnTimer -= Time.deltaTime;
+            spawnTimer -= deltaTime;
             if (spawnTimer > 0f)
             {
                 return;
@@ -66,7 +81,7 @@ namespace MP.Gameplay.Stages
                 return;
             }
 
-            SpawnEnemyServer(ChooseEnemyPrefab(), false);
+            SpawnEnemy(ChooseEnemyPrefab(), false);
         }
 
         public void BeginWave(int waveIndex, WaveDefinition wave, CastleEntity castle)
@@ -83,13 +98,13 @@ namespace MP.Gameplay.Stages
             isSpawning = false;
         }
 
-        public GameObject SpawnBossServer(GameObject bossPrefab, int waveIndex, CastleEntity castle)
+        public GameObject SpawnBoss(GameObject bossPrefab, int waveIndex, CastleEntity castle)
         {
             targetCastle = castle != null ? castle : targetCastle;
-            return SpawnEnemyServer(bossPrefab, true, waveIndex);
+            return SpawnEnemy(bossPrefab, true, waveIndex);
         }
 
-        private GameObject SpawnEnemyServer(GameObject prefab, bool isBoss, int waveIndexOverride = -1)
+        private GameObject SpawnEnemy(GameObject prefab, bool isBoss, int waveIndexOverride = -1)
         {
             if (prefab == null)
             {
@@ -102,11 +117,6 @@ namespace MP.Gameplay.Stages
             if (enemy.TryGetComponent(out EnemyTargetingComponent targeting))
             {
                 targeting.SetFallbackCastle(targetCastle);
-            }
-
-            if (enemy.TryGetComponent(out EnemyMoveToCastleComponent movement))
-            {
-                movement.SetTargetCastle(targetCastle);
             }
 
             if (enemy.TryGetComponent(out EnemyCastleAttackComponent attack))
@@ -123,7 +133,7 @@ namespace MP.Gameplay.Stages
             int waveIndex = waveIndexOverride >= 0 ? waveIndexOverride : currentWaveIndex;
             waveEnemy.Initialize(waveIndex, isBoss);
 
-            NetworkSpawnUtility.TrySpawnNetworkObject(enemy);
+            EnemySpawned?.Invoke(enemy);
             return enemy;
         }
 
@@ -171,7 +181,7 @@ namespace MP.Gameplay.Stages
                 return enemyPrefab;
             }
 
-            float roll = Random.value * totalWeight;
+            float roll = UnityEngine.Random.value * totalWeight;
             for (int i = 0; i < entries.Length; i++)
             {
                 EnemySpawnEntry entry = entries[i];
@@ -206,7 +216,7 @@ namespace MP.Gameplay.Stages
             return count;
         }
 
-        public static int CountAliveBosses(int waveIndex)
+        public int CountAliveBosses(int waveIndex)
         {
             WaveEnemyComponent[] enemies = FindObjectsByType<WaveEnemyComponent>(FindObjectsSortMode.None);
             int count = 0;
@@ -227,7 +237,7 @@ namespace MP.Gameplay.Stages
             return count;
         }
 
-        public static void KillAliveEnemies()
+        public void KillAliveEnemies()
         {
             EnemyEntity[] enemies = FindObjectsByType<EnemyEntity>(FindObjectsSortMode.None);
             for (int i = 0; i < enemies.Length; i++)

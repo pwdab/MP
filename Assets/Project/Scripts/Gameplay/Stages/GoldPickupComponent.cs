@@ -1,7 +1,5 @@
-using MP.Gameplay.Entity;
-using MP.Network;
-using MP.UI;
-using Unity.Netcode;
+﻿using MP.Gameplay.Entity;
+using System;
 using UnityEngine;
 
 namespace MP.Gameplay.Stages
@@ -11,7 +9,10 @@ namespace MP.Gameplay.Stages
     {
         [SerializeField, Min(0)] private int goldAmount = 1;
 
+        private bool collected;
+
         public int GoldAmount => Mathf.Max(0, goldAmount);
+        public event Action<GoldPickupComponent, PlayerEntity> Collected;
 
         public void Initialize(int amount)
         {
@@ -36,26 +37,13 @@ namespace MP.Gameplay.Stages
 
         private void TryCollect(Collider2D other)
         {
-            if (!NetworkContext.HasServerAuthority() || other == null || !other.TryGetComponent(out PlayerEntity _))
+            if (collected || other == null || !other.TryGetComponent(out PlayerEntity player))
             {
                 return;
             }
 
-            StageFlowController stageFlow = FindFirstObjectByType<StageFlowController>();
-            stageFlow?.AddGold(GoldAmount);
-            FloatingWorldText.Show(transform.position + Vector3.up * 0.5f, $"+{GoldAmount} Gold", new Color(1f, 0.82f, 0.18f, 1f));
-            DespawnOrDestroy();
-        }
-
-        private void DespawnOrDestroy()
-        {
-            if (TryGetComponent(out NetworkObject networkObject) && networkObject.IsSpawned)
-            {
-                networkObject.Despawn();
-                return;
-            }
-
-            Destroy(gameObject);
+            collected = true;
+            Collected?.Invoke(this, player);
         }
     }
 }

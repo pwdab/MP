@@ -22,11 +22,52 @@ namespace MP.Items
         public float DropChance => Mathf.Clamp01(dropChance);
         public int MinQuantity => Mathf.Max(1, minQuantity);
         public int MaxQuantity => Mathf.Max(MinQuantity, maxQuantity);
-        public bool IsValid => item != null && DropChance > 0f;
+        public bool IsValid()
+        {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (item == null)
+            {
+                reason = "DropTableEntry item is missing.";
+                return false;
+            }
+
+            if (float.IsNaN(dropChance) || float.IsInfinity(dropChance) || dropChance < 0f || dropChance > 1f)
+            {
+                reason = $"DropTableEntry has invalid drop chance '{dropChance}'.";
+                return false;
+            }
+
+            if (minQuantity < 1)
+            {
+                reason = $"DropTableEntry has invalid minimum quantity '{minQuantity}'.";
+                return false;
+            }
+
+            if (maxQuantity < minQuantity)
+            {
+                reason = $"DropTableEntry max quantity '{maxQuantity}' is smaller than min quantity '{minQuantity}'.";
+                return false;
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+        }
 
         public bool ShouldDrop()
         {
-            return IsValid && (DropChance >= 1f || UnityEngine.Random.value < DropChance);
+            return IsValid() && DropChance > 0f && (DropChance >= 1f || UnityEngine.Random.value < DropChance);
         }
 
         public int RollQuantity()

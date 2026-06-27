@@ -40,6 +40,7 @@ namespace MP.Editor
         private const string EnemyStatsPath = "Assets/Project/Data/Enemies/PrototypeEnemyBaseStats.asset";
         private const string BossStatsPath = "Assets/Project/Data/Enemies/PrototypeBossBaseStats.asset";
         private const string CastleStatsPath = "Assets/Project/Data/Stages/PrototypeCastleBaseStats.asset";
+        private const string StatCatalogPath = "Assets/Project/Data/Stats/PrototypeStatCatalog.asset";
         private const string EnemyKilledEventChannelPath = "Assets/Project/Data/Events/EnemyKilledEventChannel.asset";
         private const string StageDefinitionPath = "Assets/Project/Data/Stages/PrototypeStage.asset";
         private const string PlayerPrefabPath = "Assets/Project/Prefabs/Players/PrototypePlayer.prefab";
@@ -59,10 +60,11 @@ namespace MP.Editor
             EnsureFolders();
             EnsureSprites();
 
-            EntityStatsDefinition playerStats = EnsureStatsDefinition(PlayerStatsPath, CreatePlayerBaseStats());
-            EntityStatsDefinition enemyStats = EnsureStatsDefinition(EnemyStatsPath, CreateEnemyBaseStats());
-            EntityStatsDefinition bossStats = EnsureStatsDefinition(BossStatsPath, CreateBossBaseStats());
-            EntityStatsDefinition castleStats = EnsureStatsDefinition(CastleStatsPath, CreateCastleBaseStats());
+            StatCatalogDefinition statCatalog = EnsureStatCatalogDefinition();
+            EntityStatsDefinition playerStats = EnsureStatsDefinition(PlayerStatsPath, CreatePlayerBaseStats(), statCatalog);
+            EntityStatsDefinition enemyStats = EnsureStatsDefinition(EnemyStatsPath, CreateEnemyBaseStats(), statCatalog);
+            EntityStatsDefinition bossStats = EnsureStatsDefinition(BossStatsPath, CreateBossBaseStats(), statCatalog);
+            EntityStatsDefinition castleStats = EnsureStatsDefinition(CastleStatsPath, CreateCastleBaseStats(), statCatalog);
             JobDefinition[] jobs = EnsureJobDefinitions();
 
             GameObject projectilePrefab = EnsureProjectilePrefab();
@@ -93,6 +95,7 @@ namespace MP.Editor
             EnsureFolder("Assets/Project/Data", "Enemies");
             EnsureFolder("Assets/Project/Data", "Stages");
             EnsureFolder("Assets/Project/Data", "Events");
+            EnsureFolder("Assets/Project/Data", "Stats");
             EnsureFolder("Assets/Project/Data", "Jobs");
             EnsureFolder("Assets/Project/Data/Jobs", "Modifiers");
             EnsureFolder("Assets/Project/Prefabs", "Players");
@@ -139,6 +142,7 @@ namespace MP.Editor
             {
                 gameObject.AddComponent<NetworkObject>();
                 gameObject.AddComponent<NetworkTransform>();
+                gameObject.AddComponent<ProjectileComponent>();
                 gameObject.AddComponent<NetworkProjectile>();
                 EnsureSpriteRenderer(gameObject, ProjectileSpritePath, Color.yellow, 2, Vector3.one * 0.25f);
 
@@ -166,6 +170,7 @@ namespace MP.Editor
                 gameObject.AddComponent<NetworkObject>();
                 gameObject.AddComponent<NetworkTransform>();
                 gameObject.AddComponent<GoldPickupComponent>();
+                gameObject.AddComponent<NetworkGoldPickupAdapter>();
                 EnsureKinematicRigidbody2D(gameObject);
                 EnsureSpriteRenderer(gameObject, GoldSpritePath, new Color(1f, 0.75f, 0.15f), 2, Vector3.one * 0.3f);
                 EnsureTriggerBoxCollider(gameObject, Vector2.one);
@@ -202,13 +207,14 @@ namespace MP.Editor
                 gameObject.AddComponent<WorldHealthLabel>();
                 gameObject.AddComponent<WorldCombatFeedbackComponent>();
                 gameObject.AddComponent<EnemyTargetingComponent>();
-                EnemyMoveToCastleComponent enemyMovement = gameObject.AddComponent<EnemyMoveToCastleComponent>();
+                EnemyEntityMovementComponent enemyMovement = gameObject.AddComponent<EnemyEntityMovementComponent>();
                 gameObject.AddComponent<EnemyCastleAttackComponent>();
                 gameObject.AddComponent<EnemyDetectionRangeIndicator>();
                 CombatRangeIndicator rangeIndicator = gameObject.AddComponent<CombatRangeIndicator>();
-                DespawnOnDeathComponent despawnOnDeath = gameObject.AddComponent<DespawnOnDeathComponent>();
+                gameObject.AddComponent<DespawnOnDeathComponent>();
+                DeathVisualComponent deathVisual = GetOrAdd<DeathVisualComponent>(gameObject);
                 EnemyGoldDropComponent goldDrop = gameObject.AddComponent<EnemyGoldDropComponent>();
-                EnemyExperienceRewardComponent experienceReward = gameObject.AddComponent<EnemyExperienceRewardComponent>();
+                gameObject.AddComponent<NetworkEnemyGoldDropAdapter>();
                 gameObject.AddComponent<ItemDropComponent>();
                 EnsureSpriteRenderer(gameObject, spritePath, color, 1, scale);
                 EnsureBoxCollider(gameObject, Vector2.one);
@@ -218,11 +224,10 @@ namespace MP.Editor
                 AssignBaseStats(stats, enemyStats);
                 AssignTargetableTeam(targetable, TeamId.Enemy);
                 AssignEnemyMovement(enemyMovement);
-                AssignEnemyKilledEventChannel(enemyEntity, enemyKilledEventChannel);
+                AssignEnemyKilledEventChannel(enemyEntity, enemyKilledEventChannel, prefabName);
                 AssignRangeIndicator(rangeIndicator, true, false, false);
-                AssignDespawnOnDeath(despawnOnDeath);
+                AssignDeathVisual(deathVisual);
                 AssignGoldDrop(goldDrop, goldPrefab, goldAmount);
-                AssignExperienceReward(experienceReward, goldAmount, enemyKilledEventChannel);
 
                 prefab = PrefabUtility.SaveAsPrefabAsset(gameObject, prefabPath);
                 return prefab;
@@ -297,27 +302,33 @@ namespace MP.Editor
                 gameObject.AddComponent<NetworkTestCommands>();
                 gameObject.AddComponent<WorldHealthLabel>();
                 gameObject.AddComponent<WorldCombatFeedbackComponent>();
-                gameObject.AddComponent<NetworkPlayerMovement>();
+                gameObject.AddComponent<PlayerEntityMovementComponent>();
+                gameObject.AddComponent<PlayerNetworkMovementComponent>();
                 AutoProjectileAttackComponent projectileAttack = gameObject.AddComponent<AutoProjectileAttackComponent>();
+                gameObject.AddComponent<NetworkAutoProjectileAttackAdapter>();
+                gameObject.AddComponent<ManualProjectileAttackComponent>();
                 NetworkProjectileLauncher launcher = gameObject.AddComponent<NetworkProjectileLauncher>();
                 PlayerDirectionalBasicAttackComponent basicAttack = gameObject.AddComponent<PlayerDirectionalBasicAttackComponent>();
-                PlayerActiveSkillComponent activeSkill = gameObject.AddComponent<PlayerActiveSkillComponent>();
-                gameObject.AddComponent<PlayerKnockbackComponent>();
+                gameObject.AddComponent<PlayerActiveSkillAbilityComponent>();
+                NetworkPlayerActiveSkillAdapter activeSkill = gameObject.AddComponent<NetworkPlayerActiveSkillAdapter>();
+                gameObject.AddComponent<PlayerKnockbackMovementComponent>();
                 gameObject.AddComponent<PlayerEnemyContactDamageComponent>();
-                gameObject.AddComponent<PlayerSeparationComponent>();
+                gameObject.AddComponent<PlayerCollisionSeparationComponent>();
                 CombatRangeIndicator rangeIndicator = gameObject.AddComponent<CombatRangeIndicator>();
-                gameObject.AddComponent<PlayerMoveDirectionDebugIndicator>();
-                gameObject.AddComponent<LocalCameraFollow>();
+                gameObject.AddComponent<PlayerMoveDirectionDebugIndicatorComponent>();
+                gameObject.AddComponent<LocalPlayerCameraFollowComponent>();
                 gameObject.AddComponent<NetworkPlayerLabel>();
                 gameObject.AddComponent<NetworkPlayerSpawnOffset>();
                 gameObject.AddComponent<PlayerJobComponent>();
                 NetworkPlayerJobSelector jobSelector = gameObject.AddComponent<NetworkPlayerJobSelector>();
                 gameObject.AddComponent<SkillTreeComponent>();
                 gameObject.AddComponent<PlayerProgressionComponent>();
+                gameObject.AddComponent<NetworkPlayerProgressionAdapter>();
                 gameObject.AddComponent<InventoryComponent>();
                 gameObject.AddComponent<EquipComponent>();
                 gameObject.AddComponent<PlayerSaveComponent>();
                 RespawnComponent respawn = gameObject.AddComponent<RespawnComponent>();
+                gameObject.AddComponent<NetworkRespawnAdapter>();
                 EnsureSpriteRenderer(gameObject, PlayerSpritePath, Color.blue, 1, Vector3.one * 0.7f);
                 EnsureBoxCollider(gameObject, Vector2.one);
 
@@ -345,6 +356,7 @@ namespace MP.Editor
         {
             string path = AssetDatabase.GetAssetPath(prefab);
             GameObject root = PrefabUtility.LoadPrefabContents(path);
+            GameObjectUtility.RemoveMonoBehavioursWithMissingScript(root);
 
             GetOrAdd<NetworkObject>(root);
             GetOrAdd<NetworkTransform>(root);
@@ -357,23 +369,30 @@ namespace MP.Editor
             GetOrAdd<NetworkTestCommands>(root);
             GetOrAdd<WorldHealthLabel>(root);
             GetOrAdd<WorldCombatFeedbackComponent>(root);
-            GetOrAdd<NetworkPlayerMovement>(root);
+            GetOrAdd<PlayerEntityMovementComponent>(root);
+            GetOrAdd<PlayerNetworkMovementComponent>(root);
+            GetOrAdd<ManualProjectileAttackComponent>(root);
             NetworkProjectileLauncher launcher = GetOrAdd<NetworkProjectileLauncher>(root);
             AutoProjectileAttackComponent projectileAttack = GetOrAdd<AutoProjectileAttackComponent>(root);
+            GetOrAdd<NetworkAutoProjectileAttackAdapter>(root);
             RemoveIfExists<CombatComponent>(root);
             PlayerDirectionalBasicAttackComponent basicAttack = GetOrAdd<PlayerDirectionalBasicAttackComponent>(root);
-            PlayerActiveSkillComponent activeSkill = GetOrAdd<PlayerActiveSkillComponent>(root);
-            GetOrAdd<PlayerKnockbackComponent>(root);
+            GetOrAdd<PlayerActiveSkillAbilityComponent>(root);
+            RemoveIfExists<PlayerActiveSkillComponent>(root);
+            NetworkPlayerActiveSkillAdapter activeSkill = GetOrAdd<NetworkPlayerActiveSkillAdapter>(root);
+            GetOrAdd<PlayerKnockbackMovementComponent>(root);
             GetOrAdd<PlayerEnemyContactDamageComponent>(root);
-            GetOrAdd<PlayerSeparationComponent>(root);
+            GetOrAdd<PlayerCollisionSeparationComponent>(root);
             CombatRangeIndicator rangeIndicator = GetOrAdd<CombatRangeIndicator>(root);
-            GetOrAdd<PlayerMoveDirectionDebugIndicator>(root);
-            GetOrAdd<LocalCameraFollow>(root);
+            GetOrAdd<PlayerMoveDirectionDebugIndicatorComponent>(root);
+            GetOrAdd<LocalPlayerCameraFollowComponent>(root);
             GetOrAdd<NetworkPlayerLabel>(root);
             GetOrAdd<NetworkPlayerSpawnOffset>(root);
             GetOrAdd<PlayerJobComponent>(root);
             NetworkPlayerJobSelector jobSelector = GetOrAdd<NetworkPlayerJobSelector>(root);
             RespawnComponent respawn = GetOrAdd<RespawnComponent>(root);
+            GetOrAdd<NetworkRespawnAdapter>(root);
+            GetOrAdd<NetworkPlayerProgressionAdapter>(root);
 
             AssignBaseStats(stats, playerStats);
             AssignPlayerTeam(player, TeamId.Player);
@@ -407,13 +426,14 @@ namespace MP.Editor
             GetOrAdd<WorldHealthLabel>(root);
             GetOrAdd<WorldCombatFeedbackComponent>(root);
             GetOrAdd<EnemyTargetingComponent>(root);
-            EnemyMoveToCastleComponent enemyMovement = GetOrAdd<EnemyMoveToCastleComponent>(root);
+            EnemyEntityMovementComponent enemyMovement = GetOrAdd<EnemyEntityMovementComponent>(root);
             GetOrAdd<EnemyCastleAttackComponent>(root);
             GetOrAdd<EnemyDetectionRangeIndicator>(root);
             CombatRangeIndicator rangeIndicator = GetOrAdd<CombatRangeIndicator>(root);
-            DespawnOnDeathComponent despawnOnDeath = GetOrAdd<DespawnOnDeathComponent>(root);
+            GetOrAdd<DespawnOnDeathComponent>(root);
+            DeathVisualComponent deathVisual = GetOrAdd<DeathVisualComponent>(root);
             EnemyGoldDropComponent goldDrop = GetOrAdd<EnemyGoldDropComponent>(root);
-            EnemyExperienceRewardComponent experienceReward = GetOrAdd<EnemyExperienceRewardComponent>(root);
+            GetOrAdd<NetworkEnemyGoldDropAdapter>(root);
             GetOrAdd<ItemDropComponent>(root);
             EnsureSpriteRenderer(root, spritePath, color, 1, scale);
             EnsureBoxCollider(root, Vector2.one);
@@ -423,11 +443,10 @@ namespace MP.Editor
             AssignBaseStats(stats, enemyStats);
             AssignTargetableTeam(targetable, TeamId.Enemy);
             AssignEnemyMovement(enemyMovement);
-            AssignEnemyKilledEventChannel(enemyEntity, enemyKilledEventChannel);
+            AssignEnemyKilledEventChannel(enemyEntity, enemyKilledEventChannel, root.name);
             AssignRangeIndicator(rangeIndicator, true, false, false);
-            AssignDespawnOnDeath(despawnOnDeath);
+            AssignDeathVisual(deathVisual);
             AssignGoldDrop(goldDrop, goldPrefab, goldAmount);
-            AssignExperienceReward(experienceReward, goldAmount, enemyKilledEventChannel);
 
             PrefabUtility.SaveAsPrefabAsset(root, path);
             PrefabUtility.UnloadPrefabContents(root);
@@ -470,6 +489,7 @@ namespace MP.Editor
             GetOrAdd<NetworkObject>(root);
             GetOrAdd<NetworkTransform>(root);
             GetOrAdd<GoldPickupComponent>(root);
+            GetOrAdd<NetworkGoldPickupAdapter>(root);
             EnsureKinematicRigidbody2D(root);
             EnsureSpriteRenderer(root, GoldSpritePath, new Color(1f, 0.75f, 0.15f), 2, Vector3.one * 0.3f);
             EnsureTriggerBoxCollider(root, Vector2.one);
@@ -528,6 +548,7 @@ namespace MP.Editor
 
             var spawnerObject = new GameObject("EnemySpawner");
             EnemySpawner spawner = spawnerObject.AddComponent<EnemySpawner>();
+            spawnerObject.AddComponent<NetworkEnemySpawnAdapter>();
             AssignSpawner(spawner, enemyPrefab, spawnPoints);
         }
 
@@ -548,9 +569,13 @@ namespace MP.Editor
         {
             var gameObject = new GameObject("NetworkSimulationRoot");
             StageFlowController stageFlow = gameObject.AddComponent<StageFlowController>();
+            gameObject.AddComponent<NetworkStageFlowAdapter>();
+            EnemyRewardSystem rewardSystem = gameObject.AddComponent<EnemyRewardSystem>();
+            NetworkEnemyRewardSystemAdapter rewardAdapter = gameObject.AddComponent<NetworkEnemyRewardSystemAdapter>();
             gameObject.AddComponent<SimulationAuthority>();
             gameObject.AddComponent<CombatSimulationRunner>();
             AssignStageFlow(stageFlow, stageDefinition);
+            AssignEnemyRewardSystem(rewardSystem, rewardAdapter, EnsureEnemyKilledEventChannel());
         }
 
         private static void CreateHud()
@@ -645,15 +670,15 @@ namespace MP.Editor
         {
             return new[]
             {
-                new StatEntry(StatId.MaxHealth, 100f, new StatBounds(1f, 1000f)),
-                new StatEntry(StatId.Defense, 100f, new StatBounds(0f, 1000f)),
-                new StatEntry(StatId.AttackPower, 10f, new StatBounds(0f, 1000f)),
-                new StatEntry(StatId.AttackSpeed, 1f, new StatBounds(0f, 20f)),
-                new StatEntry(StatId.AutoAttackRange, 2.5f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.AutoProjectileRange, 5f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.ManualProjectileRange, 7.5f, new StatBounds(0f, 45f)),
-                new StatEntry(StatId.MoveSpeed, 5f, new StatBounds(0f, 20f)),
-                new StatEntry(StatId.RespawnDelay, 10f, new StatBounds(0f, 60f))
+                new StatEntry(StatId.MaxHealth, 100f),
+                new StatEntry(StatId.Defense, 100f),
+                new StatEntry(StatId.AttackPower, 10f),
+                new StatEntry(StatId.AttackSpeed, 1f),
+                new StatEntry(StatId.AutoAttackRange, 2.5f),
+                new StatEntry(StatId.AutoProjectileRange, 5f),
+                new StatEntry(StatId.ManualProjectileRange, 7.5f),
+                new StatEntry(StatId.MoveSpeed, 5f),
+                new StatEntry(StatId.RespawnDelay, 10f)
             };
         }
 
@@ -661,15 +686,15 @@ namespace MP.Editor
         {
             return new[]
             {
-                new StatEntry(StatId.MaxHealth, 60f, new StatBounds(1f, 1000f)),
-                new StatEntry(StatId.Defense, 80f, new StatBounds(0f, 1000f)),
-                new StatEntry(StatId.AttackPower, 8f, new StatBounds(0f, 1000f)),
-                new StatEntry(StatId.AttackSpeed, 0.7f, new StatBounds(0f, 20f)),
-                new StatEntry(StatId.AutoAttackRange, 1.2f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.AutoProjectileRange, 0f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.ManualProjectileRange, 0f, new StatBounds(0f, 45f)),
-                new StatEntry(StatId.MoveSpeed, 1.6f, new StatBounds(0f, 20f)),
-                new StatEntry(StatId.RespawnDelay, 3f, new StatBounds(0f, 60f))
+                new StatEntry(StatId.MaxHealth, 60f),
+                new StatEntry(StatId.Defense, 80f),
+                new StatEntry(StatId.AttackPower, 8f),
+                new StatEntry(StatId.AttackSpeed, 0.7f),
+                new StatEntry(StatId.AutoAttackRange, 1.2f),
+                new StatEntry(StatId.AutoProjectileRange, 0f),
+                new StatEntry(StatId.ManualProjectileRange, 0f),
+                new StatEntry(StatId.MoveSpeed, 1.6f),
+                new StatEntry(StatId.RespawnDelay, 3f)
             };
         }
 
@@ -677,15 +702,15 @@ namespace MP.Editor
         {
             return new[]
             {
-                new StatEntry(StatId.MaxHealth, 220f, new StatBounds(1f, 3000f)),
-                new StatEntry(StatId.Defense, 120f, new StatBounds(0f, 1000f)),
-                new StatEntry(StatId.AttackPower, 16f, new StatBounds(0f, 1000f)),
-                new StatEntry(StatId.AttackSpeed, 0.55f, new StatBounds(0f, 20f)),
-                new StatEntry(StatId.AutoAttackRange, 1.6f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.AutoProjectileRange, 0f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.ManualProjectileRange, 0f, new StatBounds(0f, 45f)),
-                new StatEntry(StatId.MoveSpeed, 1.1f, new StatBounds(0f, 20f)),
-                new StatEntry(StatId.RespawnDelay, 3f, new StatBounds(0f, 60f))
+                new StatEntry(StatId.MaxHealth, 220f),
+                new StatEntry(StatId.Defense, 120f),
+                new StatEntry(StatId.AttackPower, 16f),
+                new StatEntry(StatId.AttackSpeed, 0.55f),
+                new StatEntry(StatId.AutoAttackRange, 1.6f),
+                new StatEntry(StatId.AutoProjectileRange, 0f),
+                new StatEntry(StatId.ManualProjectileRange, 0f),
+                new StatEntry(StatId.MoveSpeed, 1.1f),
+                new StatEntry(StatId.RespawnDelay, 3f)
             };
         }
 
@@ -693,19 +718,35 @@ namespace MP.Editor
         {
             return new[]
             {
-                new StatEntry(StatId.MaxHealth, 500f, new StatBounds(1f, 5000f)),
-                new StatEntry(StatId.Defense, 120f, new StatBounds(0f, 1000f)),
-                new StatEntry(StatId.AttackPower, 12f, new StatBounds(0f, 1000f)),
-                new StatEntry(StatId.AttackSpeed, 0.8f, new StatBounds(0f, 20f)),
-                new StatEntry(StatId.AutoAttackRange, 4f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.AutoProjectileRange, 0f, new StatBounds(0f, 30f)),
-                new StatEntry(StatId.ManualProjectileRange, 0f, new StatBounds(0f, 45f)),
-                new StatEntry(StatId.MoveSpeed, 0f, new StatBounds(0f, 20f)),
-                new StatEntry(StatId.RespawnDelay, 0f, new StatBounds(0f, 60f))
+                new StatEntry(StatId.MaxHealth, 500f),
+                new StatEntry(StatId.Defense, 120f),
+                new StatEntry(StatId.AttackPower, 12f),
+                new StatEntry(StatId.AttackSpeed, 0.8f),
+                new StatEntry(StatId.AutoAttackRange, 4f),
+                new StatEntry(StatId.AutoProjectileRange, 0f),
+                new StatEntry(StatId.ManualProjectileRange, 0f),
+                new StatEntry(StatId.MoveSpeed, 0f),
+                new StatEntry(StatId.RespawnDelay, 0f)
             };
         }
 
-        private static EntityStatsDefinition EnsureStatsDefinition(string path, StatEntry[] stats)
+        private static StatDefinition[] CreateStatCatalogDefinitions()
+        {
+            return new[]
+            {
+                new StatDefinition(StatId.MaxHealth, new StatBounds(1f, 5000f)),
+                new StatDefinition(StatId.Defense, new StatBounds(0f, 1000f)),
+                new StatDefinition(StatId.AttackPower, new StatBounds(0f, 1000f)),
+                new StatDefinition(StatId.AttackSpeed, new StatBounds(0f, 20f)),
+                new StatDefinition(StatId.AutoAttackRange, new StatBounds(0f, 30f)),
+                new StatDefinition(StatId.AutoProjectileRange, new StatBounds(0f, 30f)),
+                new StatDefinition(StatId.ManualProjectileRange, new StatBounds(0f, 45f)),
+                new StatDefinition(StatId.MoveSpeed, new StatBounds(0f, 20f)),
+                new StatDefinition(StatId.RespawnDelay, new StatBounds(0f, 60f))
+            };
+        }
+
+        private static EntityStatsDefinition EnsureStatsDefinition(string path, StatEntry[] stats, StatCatalogDefinition statCatalog)
         {
             EntityStatsDefinition definition = AssetDatabase.LoadAssetAtPath<EntityStatsDefinition>(path);
             if (definition == null)
@@ -715,6 +756,7 @@ namespace MP.Editor
             }
 
             var serializedDefinition = new SerializedObject(definition);
+            serializedDefinition.FindProperty("statCatalog").objectReferenceValue = statCatalog;
             SerializedProperty statsProperty = serializedDefinition.FindProperty("stats");
             statsProperty.arraySize = stats.Length;
             for (int i = 0; i < stats.Length; i++)
@@ -722,13 +764,37 @@ namespace MP.Editor
                 SerializedProperty entry = statsProperty.GetArrayElementAtIndex(i);
                 entry.FindPropertyRelative("statId").enumValueIndex = (int)stats[i].StatId;
                 entry.FindPropertyRelative("baseValue").floatValue = stats[i].BaseValue;
-                entry.FindPropertyRelative("bounds").FindPropertyRelative("minimum").floatValue = stats[i].Bounds.Minimum;
-                entry.FindPropertyRelative("bounds").FindPropertyRelative("maximum").floatValue = stats[i].Bounds.Maximum;
             }
 
             serializedDefinition.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(definition);
             return definition;
+        }
+
+        private static StatCatalogDefinition EnsureStatCatalogDefinition()
+        {
+            StatCatalogDefinition catalog = AssetDatabase.LoadAssetAtPath<StatCatalogDefinition>(StatCatalogPath);
+            if (catalog == null)
+            {
+                catalog = ScriptableObject.CreateInstance<StatCatalogDefinition>();
+                AssetDatabase.CreateAsset(catalog, StatCatalogPath);
+            }
+
+            var serializedCatalog = new SerializedObject(catalog);
+            SerializedProperty statsProperty = serializedCatalog.FindProperty("stats");
+            StatDefinition[] stats = CreateStatCatalogDefinitions();
+            statsProperty.arraySize = stats.Length;
+            for (int i = 0; i < stats.Length; i++)
+            {
+                SerializedProperty entry = statsProperty.GetArrayElementAtIndex(i);
+                entry.FindPropertyRelative("statId").enumValueIndex = (int)stats[i].StatId;
+                entry.FindPropertyRelative("bounds").FindPropertyRelative("minimum").floatValue = stats[i].Bounds.Minimum;
+                entry.FindPropertyRelative("bounds").FindPropertyRelative("maximum").floatValue = stats[i].Bounds.Maximum;
+            }
+
+            serializedCatalog.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(catalog);
+            return catalog;
         }
 
         private static StageDefinition EnsureStageDefinition(GameObject enemyPrefab, GameObject bossPrefab)
@@ -803,6 +869,7 @@ namespace MP.Editor
         {
             var serializedStageFlow = new SerializedObject(stageFlow);
             serializedStageFlow.FindProperty("stageDefinition").objectReferenceValue = stageDefinition;
+            serializedStageFlow.FindProperty("enemySpawnerBehaviour").objectReferenceValue = Object.FindFirstObjectByType<EnemySpawner>();
             serializedStageFlow.FindProperty("autoStart").boolValue = false;
             serializedStageFlow.FindProperty("playerStartRadius").floatValue = 3f;
             serializedStageFlow.ApplyModifiedPropertiesWithoutUndo();
@@ -828,7 +895,7 @@ namespace MP.Editor
             serializedAttack.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void AssignActiveSkill(PlayerActiveSkillComponent activeSkill)
+        private static void AssignActiveSkill(NetworkPlayerActiveSkillAdapter activeSkill)
         {
             var serializedSkill = new SerializedObject(activeSkill);
             serializedSkill.FindProperty("radius").floatValue = 1.875f;
@@ -861,33 +928,46 @@ namespace MP.Editor
             serializedGoldDrop.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void AssignEnemyMovement(EnemyMoveToCastleComponent movement)
+        private static void AssignEnemyMovement(EnemyEntityMovementComponent movement)
         {
             var serializedMovement = new SerializedObject(movement);
             serializedMovement.FindProperty("contactDistance").floatValue = 0f;
             serializedMovement.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void AssignExperienceReward(EnemyExperienceRewardComponent reward, int experienceAmount, EnemyKilledEventChannel enemyKilledEventChannel)
+        private static void AssignEnemyRewardSystem(EnemyRewardSystem rewardSystem, NetworkEnemyRewardSystemAdapter rewardAdapter, EnemyKilledEventChannel enemyKilledEventChannel)
         {
-            var serializedReward = new SerializedObject(reward);
-            serializedReward.FindProperty("experienceAmount").intValue = Mathf.Max(0, experienceAmount);
-            serializedReward.FindProperty("enemyKilledEventChannel").objectReferenceValue = enemyKilledEventChannel;
-            serializedReward.ApplyModifiedPropertiesWithoutUndo();
+            var serializedRewardSystem = new SerializedObject(rewardSystem);
+            SerializedProperty rewards = serializedRewardSystem.FindProperty("rewardEntries");
+            rewards.arraySize = 2;
+            AssignRewardEntry(rewards.GetArrayElementAtIndex(0), "PrototypeEnemy", 1);
+            AssignRewardEntry(rewards.GetArrayElementAtIndex(1), "PrototypeBoss", 10);
+            serializedRewardSystem.ApplyModifiedPropertiesWithoutUndo();
+
+            var serializedRewardAdapter = new SerializedObject(rewardAdapter);
+            serializedRewardAdapter.FindProperty("enemyKilledEventChannel").objectReferenceValue = enemyKilledEventChannel;
+            serializedRewardAdapter.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void AssignEnemyKilledEventChannel(EnemyEntity enemy, EnemyKilledEventChannel channel)
+        private static void AssignRewardEntry(SerializedProperty entry, string enemyId, int experienceReward)
+        {
+            entry.FindPropertyRelative("enemyId").stringValue = enemyId;
+            entry.FindPropertyRelative("experienceReward").intValue = Mathf.Max(0, experienceReward);
+        }
+
+        private static void AssignEnemyKilledEventChannel(EnemyEntity enemy, EnemyKilledEventChannel channel, string enemyId)
         {
             var serializedEnemy = new SerializedObject(enemy);
+            serializedEnemy.FindProperty("enemyId").stringValue = enemyId;
             serializedEnemy.FindProperty("enemyKilledEventChannel").objectReferenceValue = channel;
             serializedEnemy.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void AssignDespawnOnDeath(DespawnOnDeathComponent despawnOnDeath)
+        private static void AssignDeathVisual(DeathVisualComponent deathVisual)
         {
-            var serializedDespawn = new SerializedObject(despawnOnDeath);
-            serializedDespawn.FindProperty("fadeDuration").floatValue = 1f;
-            serializedDespawn.ApplyModifiedPropertiesWithoutUndo();
+            var serializedDeathVisual = new SerializedObject(deathVisual);
+            serializedDeathVisual.FindProperty("fadeDuration").floatValue = 1f;
+            serializedDeathVisual.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void AssignRangeIndicator(CombatRangeIndicator indicator, bool showAutoAttackRange, bool showProjectileRanges, bool showActiveSkillRange = false)

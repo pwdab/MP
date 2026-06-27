@@ -1,52 +1,29 @@
 using UnityEngine;
-using Unity.Netcode;
 
 namespace MP.Progression.Level
 {
-    public sealed class PlayerProgressionComponent : NetworkBehaviour
+    /*
+        플레이어 성장 데이터
+        레벨, 경험치, 성장 포인트를 관리하며 네트워크 동기화는 별도 어댑터가 담당
+    */
+    public sealed class PlayerProgressionComponent : MonoBehaviour
     {
         [SerializeField, Min(1)] private int level = 1;
         [SerializeField, Min(0)] private int experience;
         [SerializeField, Min(0)] private int remainingGrowthPoints;
 
-        private readonly NetworkVariable<int> networkLevel = new(1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-        private readonly NetworkVariable<int> networkExperience = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-        private readonly NetworkVariable<int> networkRemainingGrowthPoints = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
-        public int Level => IsSpawned ? networkLevel.Value : level;
-        public int Experience => IsSpawned ? networkExperience.Value : experience;
-        public int RemainingGrowthPoints => IsSpawned ? networkRemainingGrowthPoints.Value : remainingGrowthPoints;
-
-        public override void OnNetworkSpawn()
-        {
-            if (!IsServer)
-            {
-                return;
-            }
-
-            networkLevel.Value = Mathf.Max(1, level);
-            networkExperience.Value = Mathf.Max(0, experience);
-            networkRemainingGrowthPoints.Value = Mathf.Max(0, remainingGrowthPoints);
-        }
+        public int Level => Mathf.Max(1, level);
+        public int Experience => Mathf.Max(0, experience);
+        public int RemainingGrowthPoints => Mathf.Max(0, remainingGrowthPoints);
 
         public void AddExperience(int amount)
         {
-            int clampedAmount = Mathf.Max(0, amount);
-            experience += clampedAmount;
-            if (IsSpawned && IsServer)
-            {
-                networkExperience.Value += clampedAmount;
-            }
+            experience = Mathf.Max(0, experience + Mathf.Max(0, amount));
         }
 
         public void AddGrowthPoints(int amount)
         {
-            int clampedAmount = Mathf.Max(0, amount);
-            remainingGrowthPoints += clampedAmount;
-            if (IsSpawned && IsServer)
-            {
-                networkRemainingGrowthPoints.Value += clampedAmount;
-            }
+            remainingGrowthPoints = Mathf.Max(0, remainingGrowthPoints + Mathf.Max(0, amount));
         }
 
         public bool TrySpendGrowthPoint()
@@ -56,13 +33,15 @@ namespace MP.Progression.Level
                 return false;
             }
 
-            remainingGrowthPoints--;
-            if (IsSpawned && IsServer)
-            {
-                networkRemainingGrowthPoints.Value = Mathf.Max(0, networkRemainingGrowthPoints.Value - 1);
-            }
-
+            remainingGrowthPoints = Mathf.Max(0, remainingGrowthPoints - 1);
             return true;
+        }
+
+        public void ApplySnapshot(int snapshotLevel, int snapshotExperience, int snapshotGrowthPoints)
+        {
+            level = Mathf.Max(1, snapshotLevel);
+            experience = Mathf.Max(0, snapshotExperience);
+            remainingGrowthPoints = Mathf.Max(0, snapshotGrowthPoints);
         }
     }
 }

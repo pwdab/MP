@@ -21,8 +21,10 @@ namespace MP.UI
         private const int UpgradeCost = 5;
         private const float PanelWidth = 360f;
 
-        private static readonly object CastleUpgradeSource = new();
-        private static readonly object PlayerAttackUpgradeSource = new();
+        private static readonly object CastleUpgradeOwner = new();
+        private static readonly object PlayerAttackUpgradeOwner = new();
+        private static readonly StatModifierSource CastleUpgradeSource = new(CastleUpgradeOwner, StatModifierSourceType.Upgrade, "Castle Max Health Upgrade");
+        private static readonly StatModifierSource PlayerAttackUpgradeSource = new(PlayerAttackUpgradeOwner, StatModifierSourceType.Upgrade, "Player Attack Upgrade");
 
         private Canvas canvas;
         private Text titleText;
@@ -49,7 +51,7 @@ namespace MP.UI
         private NetworkPlayerJobSelector localJobSelector;
         private HealthComponent localHealth;
         private PlayerProgressionComponent localProgression;
-        private PlayerActiveSkillComponent localActiveSkill;
+        private PlayerActiveSkillAbilityComponent localActiveSkill;
         private RespawnComponent localRespawn;
 
         private void Awake()
@@ -225,7 +227,7 @@ namespace MP.UI
                     localJobSelector = selector;
                     localHealth = selector.GetComponent<HealthComponent>();
                     localProgression = selector.GetComponent<PlayerProgressionComponent>();
-                    localActiveSkill = selector.GetComponent<PlayerActiveSkillComponent>();
+                    localActiveSkill = selector.GetComponent<PlayerActiveSkillAbilityComponent>();
                     localRespawn = selector.GetComponent<RespawnComponent>();
                     return;
                 }
@@ -278,7 +280,7 @@ namespace MP.UI
                 return;
             }
 
-            PlayerActiveSkillComponent[] skills = FindObjectsByType<PlayerActiveSkillComponent>(FindObjectsSortMode.None);
+            NetworkPlayerActiveSkillAdapter[] skills = FindObjectsByType<NetworkPlayerActiveSkillAdapter>(FindObjectsSortMode.None);
             for (int i = 0; i < skills.Length; i++)
             {
                 if (skills[i] != null)

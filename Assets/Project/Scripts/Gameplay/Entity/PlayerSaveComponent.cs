@@ -50,6 +50,11 @@ namespace MP.Gameplay.Entity
                     }
 
                     string itemId = slot.Definition.ItemId;
+                    if (string.IsNullOrWhiteSpace(itemId))
+                    {
+                        continue;
+                    }
+
                     saveData.items.Add(new SavedInventorySlot(itemId, slot.Quantity));
                 }
             }

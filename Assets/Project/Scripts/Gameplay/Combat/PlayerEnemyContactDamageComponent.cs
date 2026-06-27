@@ -1,15 +1,13 @@
-using MP.Gameplay.Damage;
+﻿using MP.Gameplay.Damage;
 using MP.Gameplay.Entity;
 using MP.Gameplay.Movement;
-using MP.Gameplay.Stages;
-using MP.Network;
 using UnityEngine;
 
 namespace MP.Gameplay.Combat
 {
     [RequireComponent(typeof(PlayerEntity))]
     [RequireComponent(typeof(HealthComponent))]
-    [RequireComponent(typeof(PlayerKnockbackComponent))]
+    [RequireComponent(typeof(PlayerKnockbackMovementComponent))]
     public sealed class PlayerEnemyContactDamageComponent : MonoBehaviour
     {
         [SerializeField, Min(0f)] private float contactDamage = 5f;
@@ -17,23 +15,18 @@ namespace MP.Gameplay.Combat
         [SerializeField, Min(0.01f)] private float knockbackDuration = 0.5f;
 
         private HealthComponent health;
-        private PlayerKnockbackComponent knockback;
+        private PlayerKnockbackMovementComponent knockback;
         private Collider2D playerCollider;
 
         private void Awake()
         {
             health = GetComponent<HealthComponent>();
-            knockback = GetComponent<PlayerKnockbackComponent>();
+            knockback = GetComponent<PlayerKnockbackMovementComponent>();
             playerCollider = GetComponent<Collider2D>();
         }
 
-        private void Update()
+        public void TickContactDamage()
         {
-            if (!NetworkContext.HasServerAuthority() || !StageSimulationGate.CanRunCombatSimulation())
-            {
-                return;
-            }
-
             if (health == null || health.IsDead || knockback == null || !knockback.CanReceiveKnockback || playerCollider == null)
             {
                 return;

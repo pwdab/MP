@@ -5,7 +5,7 @@ namespace MP.Gameplay.Entity
     [RequireComponent(typeof(HealthComponent))]
     public sealed class CharacterStateComponent : MonoBehaviour
     {
-        [SerializeField] private float invulnerabilityDurationAfterRespawn = 1f;
+        [SerializeField, Min(0f)] private float invulnerabilityDurationAfterRespawn = 1f;
 
         private HealthComponent health;
         private float invulnerabilityRemainingTime;
@@ -29,12 +29,12 @@ namespace MP.Gameplay.Entity
         {
             if (invulnerabilityRemainingTime > 0f)
             {
-                invulnerabilityRemainingTime -= Time.deltaTime;
+                invulnerabilityRemainingTime = Mathf.Max(0f, invulnerabilityRemainingTime - Time.deltaTime);
             }
 
             if (movementLockRemainingTime > 0f)
             {
-                movementLockRemainingTime -= Time.deltaTime;
+                movementLockRemainingTime = Mathf.Max(0f, movementLockRemainingTime - Time.deltaTime);
             }
         }
 
@@ -63,7 +63,7 @@ namespace MP.Gameplay.Entity
 
         public void LockMovement(float duration)
         {
-            movementLockRemainingTime = Mathf.Max(movementLockRemainingTime, duration);
+            movementLockRemainingTime = Mathf.Max(movementLockRemainingTime, Mathf.Max(0f, duration));
         }
     }
 }

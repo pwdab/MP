@@ -31,7 +31,9 @@ GameObject:
   - component: {fileID: 3405111342467574954}
   - component: {fileID: 8229550946308536626}
   - component: {fileID: 8207291065442493221}
+  - component: {fileID: 5348825318412459081}
   - component: {fileID: 7825365091056136660}
+  - component: {fileID: 710010010010010002}
   m_Layer: 0
   m_Name: TestPlayer
   m_TagString: Untagged
@@ -64,7 +66,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
   GlobalObjectIdHash: 714954791
   InScenePlacedSourceGlobalObjectIdHash: 0
@@ -89,7 +91,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkTransform
   ShowTopMostFoldoutHeaderGroup: 1
   NetworkTransformExpanded: 0
@@ -135,7 +137,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 58595d35707082042b1d7e042dcfdf4d, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.PlayerEntity
   team: 1
 --- !u!114 &6771677631429386105
@@ -148,7 +150,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 63c3a353ca5046428bd0defb60fc594d, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Progression.Jobs.PlayerJobComponent
   currentJob: {fileID: 0}
 --- !u!114 &6771677631429386106
@@ -161,7 +163,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 31a8f2887cc64182b784eeebdaaa3898, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Progression.SkillTree.SkillTreeComponent
   unlockedSkillIds: []
 --- !u!114 &6771677631429386107
@@ -174,7 +176,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 338f707618e94009b217e99eb3fa88a5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Progression.Level.PlayerProgressionComponent
   level: 1
   experience: 0
@@ -189,7 +191,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1c69089339164a9c874bc1610ffd5c92, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Items.InventoryComponent
   slots: []
   dropOrigin: {fileID: 0}
@@ -204,7 +206,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 40d402d52178433599cc8cf44dc8d90e, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.PlayerSaveComponent
 --- !u!114 &8091396080939855532
 MonoBehaviour:
@@ -216,7 +218,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1b6c4b953ad7e564f9790c1d2a4a4cb4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stats.StatsComponent
   baseStats: {fileID: 11400000, guid: ce98d945d32a4d96b2789e1d08d97dcb, type: 2}
 --- !u!114 &6771677631429386101
@@ -229,7 +231,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7cfc186b332be0a489e6410a8a9d50d4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.HealthComponent
 --- !u!114 &6771677631429386104
 MonoBehaviour:
@@ -241,8 +243,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d660df66fcd34996abc4b9ee3767f3cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.RespawnComponent
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stages.RespawnComponent
   autoRespawnOnDeath: 0
 --- !u!114 &6771677631429386102
 MonoBehaviour:
@@ -254,7 +256,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 89ca0028bf1530b4e8dcec76edc38ce7, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.TargetableComponent
   team: 1
 --- !u!114 &6771677631429386103
@@ -267,7 +269,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1277f143d44d4f48b0995786c12a218f, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Network.NetworkHealthState
   ShowTopMostFoldoutHeaderGroup: 1
 --- !u!114 &7035465948907004523
@@ -280,7 +282,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed35ea6293e98a34c9f97f12120dd0fa, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.CombatComponent
   team: 1
   attackOrigin: {fileID: 0}
@@ -355,7 +357,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 059f52ad549a45f3b7508ce005419a35, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Network.NetworkPlayerSpawnOffset
   ShowTopMostFoldoutHeaderGroup: 1
   origin: {x: -3, y: -2}
@@ -370,7 +372,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cb3b99dbae684eaa9217b3a49a342e14, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Network.NetworkPlayerLabel
   ShowTopMostFoldoutHeaderGroup: 1
   localOffset: {x: 0, y: 0.8, z: 0}
@@ -385,8 +387,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7f37e8ca1584e0ab69c200a0d772bca, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Movement.NetworkPlayerMovement
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Network.PlayerNetworkMovementComponent
   ShowTopMostFoldoutHeaderGroup: 1
   predictionSnapThreshold: 1.25
   maxClientDeltaTime: 0.05
@@ -400,7 +402,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 82d9b4c13a71417eb3fae9cf9fb075aa, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.CombatRangeIndicator
   segmentCount: 64
   lineWidth: 0.035
@@ -416,8 +418,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 90c8e1bd4e2b4d1c90e34b0b0ff9a03a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.NetworkProjectileLauncher
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Network.NetworkProjectileLauncher
   ShowTopMostFoldoutHeaderGroup: 1
   team: 1
   projectilePrefab: {fileID: 3851180232506403416, guid: 14cb0a0f553d9c44cad83bb243e769dc, type: 3}
@@ -432,8 +434,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de7ae054862847878e69fcd442f51564, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Movement.LocalCameraFollow
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Network.LocalPlayerCameraFollowComponent
   ShowTopMostFoldoutHeaderGroup: 1
   offset: {x: 0, y: 0, z: -10}
   smoothTime: 0.12
@@ -447,8 +449,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0a0eed3b3f622aa4aa5fc3b07f59b458, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.CharacterStateComponent
+--- !u!114 &5348825318412459081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6246147776388055737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f39adabf0d2548f69535547145bb614b, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Movement.PlayerEntityMovementComponent
 --- !u!114 &7825365091056136660
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -459,6 +473,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2e20dfc992d74d3fa3b1fb1ef6cd3762, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.Items.EquipComponent
   equippedSlots: []
+--- !u!114 &710010010010010002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6246147776388055737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05c19de988784704ad8f1806bc7b3423, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Network.NetworkPlayerProgressionAdapter

@@ -1,4 +1,3 @@
-using MP.Gameplay.Movement;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -20,7 +19,7 @@ namespace MP.Network
             Vector2 position = origin + step * (float)OwnerClientId;
             transform.position = new Vector3(position.x, position.y, transform.position.z);
 
-            if (TryGetComponent(out NetworkPlayerMovement movement))
+            if (TryGetComponent(out PlayerNetworkMovementComponent movement))
             {
                 movement.SetServerPosition(transform.position);
             }

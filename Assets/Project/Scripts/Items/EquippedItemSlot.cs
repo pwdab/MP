@@ -13,6 +13,37 @@ namespace MP.Items
         public ItemInstance Item => item;
         public bool HasItem => item != null;
 
+        public bool IsValid()
+        {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (slotId == EquipSlotId.None)
+            {
+                reason = "EquippedItemSlot cannot use None.";
+                return false;
+            }
+
+            if (item != null && !CanAccept(item))
+            {
+                reason = $"EquippedItemSlot '{slotId}' cannot accept the current item.";
+                return false;
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+        }
+
         public EquippedItemSlot(EquipSlotId slotId)
         {
             if (slotId == EquipSlotId.None)

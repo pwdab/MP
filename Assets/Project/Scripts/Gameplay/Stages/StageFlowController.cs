@@ -1,24 +1,23 @@
 using System;
-using MP.Gameplay.Combat;
 using MP.Gameplay.Entity;
-using MP.Network;
-using Unity.Collections;
-using Unity.Netcode;
 using UnityEngine;
 
 namespace MP.Gameplay.Stages
 {
-    public sealed class StageFlowController : MonoBehaviour
+    /*
+        스테이지 진행 상태 머신
+        웨이브 시작/종료, 휴식/클리어/실패, 자원 값을 관리하며 네트워크 전송 방식은 알지 않는다
+    */
+    public sealed class StageFlowController : MonoBehaviour, IStageStateProvider, IStageSnapshotReceiver
     {
-        private const string StageSnapshotMessageName = "MP.StageFlow.Snapshot";
-
         [SerializeField] private StageDefinition stageDefinition;
         [SerializeField] private CastleEntity castle;
-        [SerializeField] private EnemySpawner enemySpawner;
+        [SerializeField] private MonoBehaviour enemySpawnerBehaviour;
         [SerializeField] private bool autoStart;
+        [SerializeField] private bool tickInUpdate = true;
         [SerializeField] private float playerStartRadius = 3f;
-        [SerializeField, Min(0.02f)] private float snapshotSendInterval = 0.1f;
 
+        private IEnemyWaveSpawner enemySpawner;
         private float stageElapsedTime;
         private float waveElapsedTime;
         private int currentWaveIndex = -1;
@@ -26,8 +25,6 @@ namespace MP.Gameplay.Stages
         private int currentExperience;
         private bool bossSpawned;
         private bool hasCurrentWave;
-        private bool registeredSnapshotHandler;
-        private float snapshotSendTimer;
 
         public event Action<StageState> StageStateChanged;
         public event Action<int, WaveDefinition> WaveStarted;
@@ -45,46 +42,6 @@ namespace MP.Gameplay.Stages
         public int CurrentExperience => currentExperience;
         public WaveDefinition CurrentWave { get; private set; }
 
-        public void AddGold(int amount)
-        {
-            if (!NetworkContext.HasServerAuthority())
-            {
-                return;
-            }
-
-            currentGold += Mathf.Max(0, amount);
-            PublishStageSnapshot();
-        }
-
-        public bool TrySpendGold(int amount)
-        {
-            if (!NetworkContext.HasServerAuthority())
-            {
-                return false;
-            }
-
-            int clampedAmount = Mathf.Max(0, amount);
-            if (currentGold < clampedAmount)
-            {
-                return false;
-            }
-
-            currentGold -= clampedAmount;
-            PublishStageSnapshot();
-            return true;
-        }
-
-        public void AddExperience(int amount)
-        {
-            if (!NetworkContext.HasServerAuthority())
-            {
-                return;
-            }
-
-            currentExperience += Mathf.Max(0, amount);
-            PublishStageSnapshot();
-        }
-
         private void Awake()
         {
             ResolveReferences();
@@ -92,20 +49,32 @@ namespace MP.Gameplay.Stages
 
         private void OnEnable()
         {
+            StageSimulationGate.Register(this);
             SubscribeCastle();
         }
 
         private void OnDisable()
         {
+            StageSimulationGate.Unregister(this);
             UnsubscribeCastle();
-            UnregisterSnapshotHandler(NetworkManager.Singleton);
         }
 
         private void Update()
         {
-            UpdateSnapshotMessaging();
+            if (tickInUpdate)
+            {
+                Tick(Time.deltaTime);
+            }
+        }
 
-            if (!NetworkContext.HasServerAuthority())
+        public void SetTickInUpdate(bool value)
+        {
+            tickInUpdate = value;
+        }
+
+        public void Tick(float deltaTime)
+        {
+            if (deltaTime <= 0f || float.IsNaN(deltaTime) || float.IsInfinity(deltaTime))
             {
                 return;
             }
@@ -121,15 +90,14 @@ namespace MP.Gameplay.Stages
                 return;
             }
 
-            stageElapsedTime += Time.deltaTime;
-            waveElapsedTime += Time.deltaTime;
+            stageElapsedTime += deltaTime;
+            waveElapsedTime += deltaTime;
             TickWave();
-            TickSnapshotPublishing();
         }
 
         public void StartStage()
         {
-            if (!NetworkContext.HasServerAuthority() || stageDefinition == null || castle == null)
+            if (stageDefinition == null || castle == null)
             {
                 return;
             }
@@ -152,13 +120,72 @@ namespace MP.Gameplay.Stages
 
         public void ContinueFromRest()
         {
-            if (!NetworkContext.HasServerAuthority() || CurrentStageState != StageState.Rest)
+            if (CurrentStageState != StageState.Rest)
             {
                 return;
             }
 
             SetStageState(StageState.Playing);
             BeginNextWave();
+        }
+
+        public void AddGold(int amount)
+        {
+            currentGold += Mathf.Max(0, amount);
+        }
+
+        public bool TrySpendGold(int amount)
+        {
+            int clampedAmount = Mathf.Max(0, amount);
+            if (currentGold < clampedAmount)
+            {
+                return false;
+            }
+
+            currentGold -= clampedAmount;
+            return true;
+        }
+
+        public void AddExperience(int amount)
+        {
+            currentExperience += Mathf.Max(0, amount);
+        }
+
+        public StageSnapshot CreateSnapshot()
+        {
+            return new StageSnapshot(CurrentStageState, CurrentWaveState, currentWaveIndex, hasCurrentWave, stageElapsedTime, waveElapsedTime, currentGold, currentExperience);
+        }
+
+        public void ApplySnapshot(StageSnapshot snapshot)
+        {
+            if (!snapshot.IsValid())
+            {
+                return;
+            }
+
+            StageState previousStageState = CurrentStageState;
+            CurrentStageState = snapshot.StageState;
+            CurrentWaveState = snapshot.WaveState;
+            currentWaveIndex = snapshot.WaveIndex;
+            hasCurrentWave = snapshot.HasCurrentWave;
+            stageElapsedTime = Mathf.Max(0f, snapshot.StageElapsedTime);
+            waveElapsedTime = Mathf.Max(0f, snapshot.WaveElapsedTime);
+            currentGold = Mathf.Max(0, snapshot.Gold);
+            currentExperience = Mathf.Max(0, snapshot.Experience);
+
+            if (hasCurrentWave && stageDefinition != null && stageDefinition.TryGetWave(currentWaveIndex, out WaveDefinition wave))
+            {
+                CurrentWave = wave;
+            }
+            else
+            {
+                CurrentWave = null;
+            }
+
+            if (previousStageState != CurrentStageState)
+            {
+                StageStateChanged?.Invoke(CurrentStageState);
+            }
         }
 
         private void TickWave()
@@ -171,10 +198,10 @@ namespace MP.Gameplay.Stages
 
             if (CurrentWave.BossWave && !bossSpawned && CurrentWave.BossPrefab != null && waveElapsedTime >= CurrentWave.BossSpawnTime)
             {
-                bossSpawned = enemySpawner != null && enemySpawner.SpawnBossServer(CurrentWave.BossPrefab, currentWaveIndex, castle) != null;
+                bossSpawned = enemySpawner != null && enemySpawner.SpawnBoss(CurrentWave.BossPrefab, currentWaveIndex, castle) != null;
             }
 
-            if (CurrentWave.BossWave && bossSpawned && EnemySpawner.CountAliveBosses(currentWaveIndex) == 0)
+            if (CurrentWave.BossWave && bossSpawned && enemySpawner != null && enemySpawner.CountAliveBosses(currentWaveIndex) == 0)
             {
                 CompleteCurrentWave();
                 return;
@@ -202,7 +229,6 @@ namespace MP.Gameplay.Stages
             CurrentWaveState = WaveState.Spawning;
             enemySpawner?.BeginWave(currentWaveIndex, wave, castle);
             WaveStarted?.Invoke(currentWaveIndex, wave);
-            PublishStageSnapshot();
         }
 
         private void CompleteCurrentWave()
@@ -213,7 +239,7 @@ namespace MP.Gameplay.Stages
             }
 
             enemySpawner?.StopSpawning();
-            EnemySpawner.KillAliveEnemies();
+            enemySpawner?.KillAliveEnemies();
             CurrentWaveState = WaveState.Cleared;
             WaveCleared?.Invoke(currentWaveIndex, CurrentWave);
 
@@ -257,10 +283,7 @@ namespace MP.Gameplay.Stages
 
         private void OnCastleDied(HealthComponent _)
         {
-            if (NetworkContext.HasServerAuthority())
-            {
-                FailStage();
-            }
+            FailStage();
         }
 
         private void PositionPlayersAroundCastle()
@@ -292,9 +315,9 @@ namespace MP.Gameplay.Stages
                     state.ResetCombatState();
                 }
 
-                if (player.TryGetComponent(out PlayerActiveSkillComponent activeSkill))
+                foreach (IStageStartResettable resettable in player.GetComponents<IStageStartResettable>())
                 {
-                    activeSkill.ResetCooldownServer();
+                    resettable.ResetForStageStart();
                 }
             }
         }
@@ -308,7 +331,21 @@ namespace MP.Gameplay.Stages
 
             if (enemySpawner == null)
             {
-                enemySpawner = FindFirstObjectByType<EnemySpawner>();
+                enemySpawner = enemySpawnerBehaviour as IEnemyWaveSpawner;
+            }
+
+            if (enemySpawner == null)
+            {
+                MonoBehaviour[] behaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+                for (int i = 0; i < behaviours.Length; i++)
+                {
+                    if (behaviours[i] is IEnemyWaveSpawner spawner)
+                    {
+                        enemySpawner = spawner;
+                        enemySpawnerBehaviour = behaviours[i];
+                        break;
+                    }
+                }
             }
         }
 
@@ -329,121 +366,6 @@ namespace MP.Gameplay.Stages
             }
         }
 
-        private void TickSnapshotPublishing()
-        {
-            snapshotSendTimer += Time.deltaTime;
-            if (snapshotSendTimer < snapshotSendInterval)
-            {
-                return;
-            }
-
-            snapshotSendTimer = 0f;
-            PublishStageSnapshot();
-        }
-
-        private void UpdateSnapshotMessaging()
-        {
-            NetworkManager networkManager = NetworkManager.Singleton;
-            if (networkManager == null || !networkManager.IsListening || networkManager.CustomMessagingManager == null)
-            {
-                UnregisterSnapshotHandler(networkManager);
-                return;
-            }
-
-            if (networkManager.IsServer)
-            {
-                UnregisterSnapshotHandler(networkManager);
-                return;
-            }
-
-            if (registeredSnapshotHandler)
-            {
-                return;
-            }
-
-            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(StageSnapshotMessageName, OnStageSnapshotMessage);
-            registeredSnapshotHandler = true;
-        }
-
-        private void UnregisterSnapshotHandler(NetworkManager networkManager)
-        {
-            if (!registeredSnapshotHandler || networkManager == null || networkManager.CustomMessagingManager == null)
-            {
-                registeredSnapshotHandler = false;
-                return;
-            }
-
-            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(StageSnapshotMessageName);
-            registeredSnapshotHandler = false;
-        }
-
-        private void PublishStageSnapshot()
-        {
-            NetworkManager networkManager = NetworkManager.Singleton;
-            if (!NetworkContext.HasServerAuthority() || networkManager == null || !networkManager.IsListening || networkManager.CustomMessagingManager == null)
-            {
-                return;
-            }
-
-            foreach (ulong clientId in networkManager.ConnectedClientsIds)
-            {
-                if (clientId == NetworkManager.ServerClientId)
-                {
-                    continue;
-                }
-
-                using var writer = new FastBufferWriter(64, Allocator.Temp);
-                writer.WriteValueSafe((int)CurrentStageState);
-                writer.WriteValueSafe((int)CurrentWaveState);
-                writer.WriteValueSafe(currentWaveIndex);
-                writer.WriteValueSafe(hasCurrentWave);
-                writer.WriteValueSafe(stageElapsedTime);
-                writer.WriteValueSafe(waveElapsedTime);
-                writer.WriteValueSafe(currentGold);
-                writer.WriteValueSafe(currentExperience);
-                networkManager.CustomMessagingManager.SendNamedMessage(StageSnapshotMessageName, clientId, writer);
-            }
-        }
-
-        private void OnStageSnapshotMessage(ulong _, FastBufferReader reader)
-        {
-            reader.ReadValueSafe(out int stageStateValue);
-            reader.ReadValueSafe(out int waveStateValue);
-            reader.ReadValueSafe(out int waveIndex);
-            reader.ReadValueSafe(out bool snapshotHasCurrentWave);
-            reader.ReadValueSafe(out float snapshotStageElapsedTime);
-            reader.ReadValueSafe(out float snapshotWaveElapsedTime);
-            reader.ReadValueSafe(out int snapshotGold);
-            reader.ReadValueSafe(out int snapshotExperience);
-
-            StageState nextStageState = Enum.IsDefined(typeof(StageState), stageStateValue) ? (StageState)stageStateValue : StageState.NotStarted;
-            WaveState nextWaveState = Enum.IsDefined(typeof(WaveState), waveStateValue) ? (WaveState)waveStateValue : WaveState.Idle;
-            bool stageStateChanged = CurrentStageState != nextStageState;
-
-            CurrentStageState = nextStageState;
-            CurrentWaveState = nextWaveState;
-            currentWaveIndex = waveIndex;
-            hasCurrentWave = snapshotHasCurrentWave;
-            stageElapsedTime = Mathf.Max(0f, snapshotStageElapsedTime);
-            waveElapsedTime = Mathf.Max(0f, snapshotWaveElapsedTime);
-            currentGold = Mathf.Max(0, snapshotGold);
-            currentExperience = Mathf.Max(0, snapshotExperience);
-
-            if (hasCurrentWave && stageDefinition != null && stageDefinition.TryGetWave(currentWaveIndex, out WaveDefinition wave))
-            {
-                CurrentWave = wave;
-            }
-            else
-            {
-                CurrentWave = null;
-            }
-
-            if (stageStateChanged)
-            {
-                StageStateChanged?.Invoke(CurrentStageState);
-            }
-        }
-
         private void SetStageState(StageState state)
         {
             if (CurrentStageState == state)
@@ -453,7 +375,6 @@ namespace MP.Gameplay.Stages
 
             CurrentStageState = state;
             StageStateChanged?.Invoke(state);
-            PublishStageSnapshot();
         }
     }
 }

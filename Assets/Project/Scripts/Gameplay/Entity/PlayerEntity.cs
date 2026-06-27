@@ -16,5 +16,15 @@ namespace MP.Gameplay.Entity
         {
             health = GetComponent<HealthComponent>();
         }
+
+        private void OnEnable()
+        {
+            PlayerEntityRegistry.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            PlayerEntityRegistry.Unregister(this);
+        }
     }
 }

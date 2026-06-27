@@ -1,4 +1,5 @@
 using MP.Gameplay.Entity;
+using MP.Gameplay.Stages;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -46,9 +47,15 @@ namespace MP.Network
                     continue;
                 }
 
+                if (player.TryGetComponent(out NetworkRespawnAdapter respawnAdapter))
+                {
+                    respawnAdapter.RespawnServer();
+                    return;
+                }
+
                 if (player.TryGetComponent(out RespawnComponent respawn))
                 {
-                    respawn.RespawnServer();
+                    respawn.Respawn();
                     return;
                 }
             }

@@ -28,8 +28,9 @@ GameObject:
   - component: {fileID: 2092659973103854638}
   - component: {fileID: 548911898620328797}
   - component: {fileID: 572225328379187352}
-  - component: {fileID: 6195089509870504608}
   - component: {fileID: 6197698788766275866}
+  - component: {fileID: 8354675459422826809}
+  - component: {fileID: 4787716575715240886}
   m_Layer: 0
   m_Name: PrototypeEnemy
   m_TagString: Untagged
@@ -174,7 +175,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.EnemyEntity
   team: 2
-  enemyKilledEventChannel: {fileID: 0}
+  enemyId: PrototypeEnemy
+  enemyKilledEventChannel: {fileID: 11400000, guid: 2144f91db9d54250802bf11455206769, type: 2}
 --- !u!114 &7559938095443416286
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -212,7 +214,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1352105aa8dcf114fb50695cf9c28944, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Movement.EnemyMoveToCastleComponent
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Movement.EnemyEntityMovementComponent
   contactDistance: 0
 --- !u!114 &1679204975078254032
 MonoBehaviour:
@@ -324,8 +326,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af6286e545f4d004b8cc86bf42345d2b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.DespawnOnDeathComponent
-  fadeDuration: 1
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Network.DespawnOnDeathComponent
 --- !u!114 &4307021874584954834
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -443,19 +444,6 @@ MonoBehaviour:
   goldAmount: 1
   goldPrefab: {fileID: 115705000688340829, guid: d4d8abb4f087fed49a00714c625bd7fe, type: 3}
   scatterRadius: 0.35
---- !u!114 &6195089509870504608
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8977295950724716183}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9d71c69e6fd84c4bbff13c5c705c2359, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stages.EnemyExperienceRewardComponent
-  experienceAmount: 1
 --- !u!114 &6197698788766275866
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -474,3 +462,28 @@ MonoBehaviour:
   deathTextColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
   flashColor: {r: 1, g: 1, b: 1, a: 1}
   flashDuration: 0.12
+--- !u!114 &8354675459422826809
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8977295950724716183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01dd31f870d64e17a42b1a882c65c4cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.DeathVisualComponent
+  fadeDuration: 1
+--- !u!114 &4787716575715240886
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8977295950724716183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b41d3779ba534239b2b2ecbcb9e775c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Network.NetworkEnemyGoldDropAdapter

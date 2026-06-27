@@ -7,12 +7,14 @@ namespace MP.Gameplay.Entity
     public sealed class EnemyEntity : MonoBehaviour
     {
         [SerializeField] private TeamId team = TeamId.Enemy;
+        [SerializeField] private string enemyId;
         [SerializeField] private EnemyKilledEventChannel enemyKilledEventChannel;
 
         private HealthComponent health;
 
         public TeamId Team => team;
         public HealthComponent Health => health;
+        public string EnemyId => string.IsNullOrWhiteSpace(enemyId) ? name : enemyId;
 
         private void Awake()
         {
@@ -44,10 +46,13 @@ namespace MP.Gameplay.Entity
         {
             if (enemyKilledEventChannel == null)
             {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning($"{nameof(EnemyEntity)} on {name} has no EnemyKilledEventChannel.", this);
+#endif
                 return;
             }
 
-            enemyKilledEventChannel.Raise(new EnemyKilledEvent(this, health.LastDamageContext));
+            enemyKilledEventChannel.Raise(new EnemyKilledEvent(EnemyId, transform.position, health.LastDamageContext));
         }
     }
 }

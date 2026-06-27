@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace MP.Gameplay.Stages
@@ -43,6 +44,65 @@ namespace MP.Gameplay.Stages
             return wave != null;
         }
 
+        public bool IsValid()
+        {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (string.IsNullOrWhiteSpace(stageId))
+            {
+                reason = $"{name} has an empty stage id.";
+                return false;
+            }
+
+            if (startingGold < 0)
+            {
+                reason = $"{name} has invalid starting gold '{startingGold}'.";
+                return false;
+            }
+
+            if (startingExperience < 0)
+            {
+                reason = $"{name} has invalid starting experience '{startingExperience}'.";
+                return false;
+            }
+
+            if (waves == null || waves.Length == 0)
+            {
+                reason = $"{name} has no waves.";
+                return false;
+            }
+
+            for (int i = 0; i < waves.Length; i++)
+            {
+                WaveDefinition wave = waves[i];
+                if (wave == null)
+                {
+                    reason = $"{name} has an empty wave at index {i}.";
+                    return false;
+                }
+
+                if (!wave.IsValid(out string waveReason))
+                {
+                    reason = $"{name} wave {i} is invalid: {waveReason}";
+                    return false;
+                }
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+        }
+
         private void OnValidate()
         {
             startingGold = Mathf.Max(0, startingGold);
@@ -55,7 +115,7 @@ namespace MP.Gameplay.Stages
 
             for (int i = 0; i < waves.Length; i++)
             {
-                waves[i]?.Validate();
+                waves[i]?.Normalize();
             }
         }
     }

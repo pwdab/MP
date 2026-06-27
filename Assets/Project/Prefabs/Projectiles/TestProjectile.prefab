@@ -117,7 +117,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 462d7c3cd9d14a4fa4566e9d5f4c8eae, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.NetworkProjectile
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Network.NetworkProjectile
   ShowTopMostFoldoutHeaderGroup: 1
   speed: 8
   radius: 0.18

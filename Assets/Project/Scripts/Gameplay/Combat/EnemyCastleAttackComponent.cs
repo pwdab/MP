@@ -2,7 +2,6 @@ using MP.Gameplay.Damage;
 using MP.Gameplay.Entity;
 using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
-using MP.Network;
 using UnityEngine;
 
 namespace MP.Gameplay.Combat
@@ -32,7 +31,7 @@ namespace MP.Gameplay.Combat
                 return;
             }
 
-            if (!NetworkContext.HasServerAuthority() || !characterState.CanAttack)
+            if (!characterState.CanAttack)
             {
                 return;
             }
@@ -42,16 +41,16 @@ namespace MP.Gameplay.Combat
                 return;
             }
 
-            float range = Mathf.Max(0f, stats.AutoAttackRange);
+            float range = Mathf.Max(0f, stats.GetValue(StatId.AutoAttackRange));
             if (!IsTargetInAttackRange(targetTransform, range))
             {
                 return;
             }
 
-            int attackCount = attackScheduler.Tick(deltaTime, stats.AttackSpeed);
+            int attackCount = attackScheduler.Tick(deltaTime, stats.GetValue(StatId.AttackSpeed));
             for (int i = 0; i < attackCount; i++)
             {
-                DamageSystem.ApplyDamage(new DamageRequest(DamageContext.FromInstigator(gameObject), targetHealth, stats.AttackPower));
+                DamageSystem.ApplyDamage(new DamageRequest(DamageContext.FromInstigator(gameObject), targetHealth, stats.GetValue(StatId.AttackPower)));
             }
         }
 

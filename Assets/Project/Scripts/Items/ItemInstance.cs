@@ -33,6 +33,43 @@ namespace MP.Items
             }
         }
 
+        public bool IsValid()
+        {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (definition == null)
+            {
+                reason = "ItemInstance definition is missing.";
+                return false;
+            }
+
+            if (definition.IsStackable)
+            {
+                reason = "ItemInstance cannot reference a stackable item definition.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(instanceId))
+            {
+                reason = "ItemInstance id is missing.";
+                return false;
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+        }
+
         public void OnBeforeSerialize()
         {
         }

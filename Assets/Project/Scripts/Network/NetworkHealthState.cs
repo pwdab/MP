@@ -12,8 +12,8 @@ namespace MP.Network
 
         private HealthComponent health;
 
-        public float CurrentHealth => healthState.Value.IsValid ? healthState.Value.CurrentHealth : health != null ? health.CurrentHealth : 0f;
-        public bool IsDead => healthState.Value.IsValid ? healthState.Value.IsDead : health != null && health.IsDead;
+        public float CurrentHealth => healthState.Value.IsValid() ? healthState.Value.CurrentHealth : health != null ? health.CurrentHealth : 0f;
+        public bool IsDead => healthState.Value.IsValid() ? healthState.Value.IsDead : health != null && health.IsDead;
 
         private void Awake()
         {
@@ -81,7 +81,7 @@ namespace MP.Network
 
         private void ApplyReplicatedState(HealthStateSnapshot snapshot)
         {
-            if (!snapshot.IsValid)
+            if (!snapshot.IsValid())
             {
                 return;
             }

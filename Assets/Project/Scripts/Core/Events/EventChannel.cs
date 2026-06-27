@@ -39,12 +39,14 @@ namespace MP.Core.Events
         {
             if (Raised == null) return;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
             // Fail-Fast 구조
             // 어떤 하나의 리스너가 예외를 던지면 그 뒤에 등록되어 있는 리스너들은 이벤트를 받지 못함
             // 개발 중에는 바로 터뜨려서 버그를 빨리 찾는다
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             Raised.Invoke(eventData);
 #else
+
             // Try-Catch 구조
             // 어떤 하나의 리스너가 예외를 던져도 로깅만 하고 넘어감
             // 실제 빌드에서는 하나의 리스너 오류가 전체 이벤트 전파를 막지 않게 한다
@@ -62,13 +64,13 @@ namespace MP.Core.Events
 #endif
         }
 
-        // 이벤트를 구독한 함수 목록을 모두 비움 (암시적)
+        // ScriptableObject가 비활성화될 때 남아 있는 리스너 참조를 제거
         protected virtual void OnDisable()
         {
             ClearListeners();
         }
 
-        // 이벤트를 구독한 함수 목록을 모두 비움 (명시적)
+        // 채널 내부에서 사용하는 전체 리스너 참조 제거 함수
         protected void ClearListeners()
         {
             Raised = null;

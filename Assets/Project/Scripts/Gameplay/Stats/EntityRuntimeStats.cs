@@ -3,88 +3,29 @@ using System.Collections.Generic;
 
 namespace MP.Gameplay.Stats
 {
+    /*
+        엔티티의 런타임 스탯 계산 상태
+        EntityStatsDefinition의 BaseValue와 StatCatalogDefinition의 Bounds를 복사한 뒤 Modifier를 적용해 최종값을 계산
+        Modifier는 source별로 기록하고 StatId별 합산값을 캐싱하므로 제거와 계산이 모두 안정적으로 동작해야 함
+        source는 StatModifierSource로 관리하며 AddModifier는 누적, ReplaceModifiersFrom은 교체 용도로 사용
+    */
     public sealed class EntityRuntimeStats
     {
+        private const float ModifierSumEpsilon = 0.000001f;
+
+        /*
+            현재는 스탯 수가 적고 디버깅과 확장성이 중요하므로 Dictionary 기반으로 관리한다.
+            수천 개 엔티티가 매 프레임 많은 스탯을 조회하는 상황에서 실제 병목으로 확인되면,
+            StatId를 배열 index로 사용하는 float[] 기반 캐시 구조로 전환을 검토한다.
+        */
         private readonly Dictionary<StatId, float> baseValues = new();
         private readonly Dictionary<StatId, StatBounds> bounds = new();
-        private readonly Dictionary<StatId, float> currentValues = new();
-        private List<StatRuntimeModifier> modifiers;
-        private bool isDirty = true;
+        private readonly Dictionary<StatModifierSource, List<StatRuntimeModifier>> modifiersBySource = new();
+        private readonly Dictionary<StatId, float> flatModifierSums = new();
+        private readonly Dictionary<StatId, float> percentModifierSums = new();
         private bool isInitialized;
 
         public bool IsInitialized => isInitialized;
-
-        public float MaxHealth
-        {
-            get
-            {
-                return GetValue(StatId.MaxHealth);
-            }
-        }
-
-        public float Defense
-        {
-            get
-            {
-                return GetValue(StatId.Defense);
-            }
-        }
-
-        public float AttackPower
-        {
-            get
-            {
-                return GetValue(StatId.AttackPower);
-            }
-        }
-
-        public float AttackSpeed
-        {
-            get
-            {
-                return GetValue(StatId.AttackSpeed);
-            }
-        }
-
-        public float AutoAttackRange
-        {
-            get
-            {
-                return GetValue(StatId.AutoAttackRange);
-            }
-        }
-
-        public float AutoProjectileRange
-        {
-            get
-            {
-                return GetValue(StatId.AutoProjectileRange);
-            }
-        }
-
-        public float ManualProjectileRange
-        {
-            get
-            {
-                return GetValue(StatId.ManualProjectileRange);
-            }
-        }
-
-        public float MoveSpeed
-        {
-            get
-            {
-                return GetValue(StatId.MoveSpeed);
-            }
-        }
-
-        public float RespawnDelay
-        {
-            get
-            {
-                return GetValue(StatId.RespawnDelay);
-            }
-        }
 
         public void InitializeFromDefinition(EntityStatsDefinition definition)
         {
@@ -97,7 +38,6 @@ namespace MP.Gameplay.Stats
 
             baseValues.Clear();
             bounds.Clear();
-            currentValues.Clear();
             isInitialized = false;
 
             IReadOnlyList<StatEntry> definitions = definition.Stats;
@@ -105,24 +45,11 @@ namespace MP.Gameplay.Stats
             {
                 StatEntry stat = definitions[i];
                 baseValues[stat.StatId] = stat.BaseValue;
-                bounds[stat.StatId] = stat.Bounds;
+                bounds[stat.StatId] = definition.GetBounds(stat.StatId);
             }
 
             ClearModifiersInternal();
             isInitialized = true;
-        }
-
-        public void SetBaseValue(StatId statId, float value, StatBounds statBounds)
-        {
-            EnsureInitialized();
-            if (!statBounds.IsValid)
-            {
-                throw new InvalidOperationException($"Cannot set invalid bounds for stat '{statId}'. Minimum is greater than maximum.");
-            }
-
-            baseValues[statId] = value;
-            bounds[statId] = statBounds;
-            MarkDirty();
         }
 
         public void SetBaseValue(StatId statId, float value)
@@ -133,70 +60,76 @@ namespace MP.Gameplay.Stats
                 throw new InvalidOperationException($"Cannot set base value for stat '{statId}' before its bounds are defined.");
             }
 
-            SetBaseValue(statId, value, statBounds);
+            baseValues[statId] = statBounds.Clamp(value);
         }
 
-        public void SetBounds(StatId statId, StatBounds statBounds)
-        {
-            EnsureInitialized();
-            if (!statBounds.IsValid)
-            {
-                throw new InvalidOperationException($"Cannot set invalid bounds for stat '{statId}'. Minimum is greater than maximum.");
-            }
-
-            if (!baseValues.ContainsKey(statId))
-            {
-                throw new InvalidOperationException($"Cannot set bounds for stat '{statId}' before its base value is defined.");
-            }
-
-            bounds[statId] = statBounds;
-            MarkDirty();
-        }
-
-        public void AddFlatModifier(StatId statId, float value, object source)
+        public void AddFlatModifier(StatId statId, float value, StatModifierSource source)
         {
             AddModifier(new StatRuntimeModifier(statId, StatModifierType.Flat, value, source));
         }
 
-        public void AddPercentModifier(StatId statId, float value, object source)
+        public void AddPercentModifier(StatId statId, float value, StatModifierSource source)
         {
             AddModifier(new StatRuntimeModifier(statId, StatModifierType.Percent, value, source));
         }
 
+        // 같은 source의 modifier를 여러 번 누적할 때 사용한다.
         public void AddModifier(StatRuntimeModifier modifier)
         {
             EnsureInitialized();
-            if (modifier.Source == null)
-            {
-                throw new ArgumentException("Modifier source cannot be null.", nameof(modifier));
-            }
-
-            if (!baseValues.ContainsKey(modifier.StatId))
-            {
-                throw new InvalidOperationException($"Cannot add modifier for missing stat '{modifier.StatId}'.");
-            }
-
-            EnsureModifiers();
-            modifiers.Add(modifier);
-            MarkDirty();
+            ValidateModifier(modifier, modifier.Source);
+            AddModifierInternal(modifier);
         }
 
-        public bool RemoveModifiersFrom(object source)
+        // 같은 source의 기존 modifier를 새 목록으로 교체할 때 사용한다.
+        public void ReplaceModifiersFrom(StatModifierSource source, IReadOnlyList<StatRuntimeModifier> modifiers)
         {
             EnsureInitialized();
-            if (source == null)
+            ValidateSource(source);
+
+            if (modifiers != null)
             {
-                throw new ArgumentNullException(nameof(source));
+                for (int i = 0; i < modifiers.Count; i++)
+                {
+                    ValidateModifier(modifiers[i], source);
+                }
             }
 
-            EnsureModifiers();
-            int removedCount = modifiers.RemoveAll(modifier => ReferenceEquals(modifier.Source, source));
-            if (removedCount > 0)
+            RemoveModifiersFromInternal(source);
+            if (modifiers == null)
             {
-                MarkDirty();
+                return;
             }
 
-            return removedCount > 0;
+            for (int i = 0; i < modifiers.Count; i++)
+            {
+                StatRuntimeModifier modifier = modifiers[i];
+                AddModifierInternal(modifier);
+            }
+        }
+
+        public bool RemoveModifiersFrom(StatModifierSource source)
+        {
+            EnsureInitialized();
+            ValidateSource(source);
+
+            return RemoveModifiersFromInternal(source);
+        }
+
+        private bool RemoveModifiersFromInternal(StatModifierSource source)
+        {
+            if (!modifiersBySource.TryGetValue(source, out List<StatRuntimeModifier> modifiers))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < modifiers.Count; i++)
+            {
+                RemoveModifierFromCache(modifiers[i]);
+            }
+
+            modifiersBySource.Remove(source);
+            return true;
         }
 
         public void ClearModifiers()
@@ -207,59 +140,37 @@ namespace MP.Gameplay.Stats
 
         private void ClearModifiersInternal()
         {
-            EnsureModifiers();
-            modifiers.Clear();
-            MarkDirty();
+            modifiersBySource.Clear();
+            flatModifierSums.Clear();
+            percentModifierSums.Clear();
         }
 
-        public void Recalculate()
+        // snapshot 배열을 만들기 때문에 디버그 UI/로그용으로는 좋지만, 매 프레임 핫패스에서 쓰면 안 됨.
+        public void ForEachModifierSource(Action<StatModifierSource, IReadOnlyList<StatRuntimeModifier>> visitor)
         {
             EnsureInitialized();
-            currentValues.Clear();
-            foreach (StatId statId in baseValues.Keys)
+            if (visitor == null)
             {
-                currentValues[statId] = CalculateValue(statId);
+                throw new ArgumentNullException(nameof(visitor));
             }
 
-            isDirty = false;
+            foreach (KeyValuePair<StatModifierSource, List<StatRuntimeModifier>> pair in modifiersBySource)
+            {
+                visitor(pair.Key, pair.Value.ToArray());
+            }
         }
 
         public float GetValue(StatId statId)
         {
             EnsureInitialized();
-            EnsureRecalculated();
-            if (currentValues.TryGetValue(statId, out float value))
-            {
-                return value;
-            }
-
-            throw new InvalidOperationException($"Missing runtime value for stat '{statId}'.");
+            return CalculateValue(statId);
         }
 
         private float CalculateValue(StatId statId)
         {
             float baseValue = GetBaseValue(statId);
-            float flatModifier = 0f;
-            float percentModifier = 0f;
-
-            EnsureModifiers();
-            for (int i = 0; i < modifiers.Count; i++)
-            {
-                StatRuntimeModifier modifier = modifiers[i];
-                if (modifier.StatId != statId)
-                {
-                    continue;
-                }
-
-                if (modifier.Type == StatModifierType.Flat)
-                {
-                    flatModifier += modifier.Value;
-                }
-                else if (modifier.Type == StatModifierType.Percent)
-                {
-                    percentModifier += modifier.Value;
-                }
-            }
+            float flatModifier = GetModifierSum(flatModifierSums, statId);
+            float percentModifier = GetModifierSum(percentModifierSums, statId);
 
             float value = (baseValue + flatModifier) * (1f + percentModifier);
             return GetBounds(statId).Clamp(value);
@@ -297,16 +208,96 @@ namespace MP.Gameplay.Stats
             throw new InvalidOperationException($"Missing bounds for stat '{statId}'.");
         }
 
-        private void EnsureModifiers()
+        private void AddModifierInternal(StatRuntimeModifier modifier)
         {
-            modifiers ??= new List<StatRuntimeModifier>();
+            if (!modifiersBySource.TryGetValue(modifier.Source, out List<StatRuntimeModifier> modifiers))
+            {
+                modifiers = new List<StatRuntimeModifier>();
+                modifiersBySource[modifier.Source] = modifiers;
+            }
+
+            modifiers.Add(modifier);
+            AddModifierToCache(modifier);
         }
 
-        private void EnsureRecalculated()
+        private void AddModifierToCache(StatRuntimeModifier modifier)
         {
-            if (isDirty)
+            switch (modifier.Type)
             {
-                Recalculate();
+                case StatModifierType.Flat:
+                    AddModifierSum(flatModifierSums, modifier.StatId, modifier.Value);
+                    break;
+                case StatModifierType.Percent:
+                    AddModifierSum(percentModifierSums, modifier.StatId, modifier.Value);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(modifier), modifier.Type, "Unsupported stat modifier type.");
+            }
+        }
+
+        private void RemoveModifierFromCache(StatRuntimeModifier modifier)
+        {
+            switch (modifier.Type)
+            {
+                case StatModifierType.Flat:
+                    AddModifierSum(flatModifierSums, modifier.StatId, -modifier.Value);
+                    break;
+                case StatModifierType.Percent:
+                    AddModifierSum(percentModifierSums, modifier.StatId, -modifier.Value);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(modifier), modifier.Type, "Unsupported stat modifier type.");
+            }
+        }
+
+        private static void ValidateModifierType(StatModifierType type)
+        {
+            if (type != StatModifierType.Flat && type != StatModifierType.Percent)
+            {
+                throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported stat modifier type.");
+            }
+        }
+
+        private void ValidateModifier(StatRuntimeModifier modifier, StatModifierSource expectedSource)
+        {
+            modifier.ValidateOrThrow();
+            ValidateSource(modifier.Source);
+            if (modifier.Source != expectedSource)
+            {
+                throw new InvalidOperationException("Modifier source must match the expected source object.");
+            }
+
+            if (!baseValues.ContainsKey(modifier.StatId))
+            {
+                throw new InvalidOperationException($"Cannot add modifier for missing stat '{modifier.StatId}'.");
+            }
+
+            ValidateModifierType(modifier.Type);
+        }
+
+        private static float GetModifierSum(Dictionary<StatId, float> modifierSums, StatId statId)
+        {
+            return modifierSums.TryGetValue(statId, out float value) ? value : 0f;
+        }
+
+        private static void AddModifierSum(Dictionary<StatId, float> modifierSums, StatId statId, float value)
+        {
+            modifierSums.TryGetValue(statId, out float currentValue);
+            float nextValue = currentValue + value;
+            if (Math.Abs(nextValue) <= ModifierSumEpsilon)
+            {
+                modifierSums.Remove(statId);
+                return;
+            }
+
+            modifierSums[statId] = nextValue;
+        }
+
+        private static void ValidateSource(StatModifierSource source)
+        {
+            if (!source.IsValid())
+            {
+                throw new ArgumentException("Modifier source must be valid.", nameof(source));
             }
         }
 
@@ -316,11 +307,6 @@ namespace MP.Gameplay.Stats
             {
                 throw new InvalidOperationException("EntityRuntimeStats must be initialized before use.");
             }
-        }
-
-        private void MarkDirty()
-        {
-            isDirty = true;
         }
     }
 }

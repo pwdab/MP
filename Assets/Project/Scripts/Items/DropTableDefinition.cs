@@ -18,10 +18,57 @@ namespace MP.Items
         public IReadOnlyList<DropTableEntry> Entries => entries ?? Array.Empty<DropTableEntry>();
         public float DropScatterRadius => Mathf.Max(0f, dropScatterRadius);
 
+        public bool IsValid()
+        {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (float.IsNaN(dropScatterRadius) || float.IsInfinity(dropScatterRadius) || dropScatterRadius < 0f)
+            {
+                reason = $"{name} has invalid drop scatter radius '{dropScatterRadius}'.";
+                return false;
+            }
+
+            if (entries == null || entries.Length == 0)
+            {
+                reason = $"{name} has no drop entries.";
+                return false;
+            }
+
+            for (int i = 0; i < entries.Length; i++)
+            {
+                DropTableEntry entry = entries[i];
+                if (entry == null)
+                {
+                    reason = $"{name} has an empty drop entry at index {i}.";
+                    return false;
+                }
+
+                if (!entry.IsValid(out string entryReason))
+                {
+                    reason = $"{name} drop entry {i} is invalid: {entryReason}";
+                    return false;
+                }
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+        }
+
         private void OnValidate()
         {
             Normalize();
-            ValidateEntries();
+            LogValidationWarnings();
         }
 
         public void Normalize()
@@ -38,7 +85,7 @@ namespace MP.Items
             }
         }
 
-        private void ValidateEntries()
+        private void LogValidationWarnings()
         {
             if (entries == null || entries.Length == 0)
             {
@@ -55,9 +102,9 @@ namespace MP.Items
                     continue;
                 }
 
-                if (entry.Item == null)
+                if (!entry.IsValid(out string reason))
                 {
-                    Debug.LogWarning($"{name} has a drop entry without an item at index {i}.", this);
+                    Debug.LogWarning($"{name} has an invalid drop entry at index {i}: {reason}", this);
                 }
             }
         }

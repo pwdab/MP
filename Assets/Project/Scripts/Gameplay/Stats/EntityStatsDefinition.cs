@@ -4,85 +4,118 @@ using UnityEngine;
 
 namespace MP.Gameplay.Stats
 {
+    /*
+        특정 엔티티의 기본 스탯값을 관리
+        StatEntry를 통해 StatId별 BaseValue를 정의하고, 스탯의 공통 규칙과 허용 범위는 StatCatalogDefinition에서 조회
+        에셋 생성 시 코드에 정의된 기본값으로 초기화되며, 각 스탯 값은 Inspector에서 수정 가능
+        런타임에서는 StatCatalogDefinition이 반드시 연결되어 있어야 함
+    */
     [CreateAssetMenu(menuName = "MP/Data/Entity Stats Definition")]
     public sealed class EntityStatsDefinition : ScriptableObject
     {
-        [Header("Base Stats")]
-        [Tooltip("Base stat table for this entity. Every StatId should exist exactly once.")]
-        [SerializeField] private StatEntry[] stats =
-        {
-            new(StatId.MaxHealth, 100f, new StatBounds(1f, float.MaxValue)),
-            new(StatId.Defense, 100f, new StatBounds(0f, float.MaxValue)),
-            new(StatId.AttackPower, 10f, new StatBounds(0f, float.MaxValue)),
-            new(StatId.AttackSpeed, 1f, new StatBounds(0f, float.MaxValue)),
-            new(StatId.AutoAttackRange, 1.5f, new StatBounds(0f, float.MaxValue)),
-            new(StatId.AutoProjectileRange, 5f, new StatBounds(0f, float.MaxValue)),
-            new(StatId.ManualProjectileRange, 7.5f, new StatBounds(0f, float.MaxValue)),
-            new(StatId.MoveSpeed, 5f, new StatBounds(0f, float.MaxValue)),
-            new(StatId.RespawnDelay, 3f, new StatBounds(0f, float.MaxValue))
-        };
+        // StatId 목록은 런타임에 변하지 않으므로 한 번만 캐시해 Enum.GetValues의 반복 할당을 피한다.
+        private static readonly StatId[] AllStatIds = (StatId[])Enum.GetValues(typeof(StatId));
 
-        public float MaxHealth => GetBaseValue(StatId.MaxHealth);
-        public float Defense => GetBaseValue(StatId.Defense);
-        public float AttackPower => GetBaseValue(StatId.AttackPower);
-        public float AttackSpeed => GetBaseValue(StatId.AttackSpeed);
-        public float AutoAttackRange => GetBaseValue(StatId.AutoAttackRange);
-        public float AutoProjectileRange => GetBaseValue(StatId.AutoProjectileRange);
-        public float ManualProjectileRange => GetBaseValue(StatId.ManualProjectileRange);
-        public float MoveSpeed => GetBaseValue(StatId.MoveSpeed);
-        public float RespawnDelay => GetBaseValue(StatId.RespawnDelay);
+        [Tooltip("이 엔티티가 사용할 전역 스탯 카탈로그입니다. 런타임에서는 반드시 연결되어 있어야 합니다.")]
+        [SerializeField] private StatCatalogDefinition statCatalog;
 
-        public StatBounds MaxHealthBounds => GetBounds(StatId.MaxHealth);
-        public StatBounds DefenseBounds => GetBounds(StatId.Defense);
-        public StatBounds AttackPowerBounds => GetBounds(StatId.AttackPower);
-        public StatBounds AttackSpeedBounds => GetBounds(StatId.AttackSpeed);
-        public StatBounds AutoAttackRangeBounds => GetBounds(StatId.AutoAttackRange);
-        public StatBounds AutoProjectileRangeBounds => GetBounds(StatId.AutoProjectileRange);
-        public StatBounds ManualProjectileRangeBounds => GetBounds(StatId.ManualProjectileRange);
-        public StatBounds MoveSpeedBounds => GetBounds(StatId.MoveSpeed);
-        public StatBounds RespawnDelayBounds => GetBounds(StatId.RespawnDelay);
+        [Header("기본 스탯")]
+        [Tooltip("이 엔티티의 기본 스탯 목록입니다. 각 StatId는 중복 없이 한 번만 등록되어야 합니다.")]
+        [SerializeField] private StatEntry[] stats = CreateDefaultStats();
 
+        // 런타임에서 불변 에셋을 매 스폰마다 재검증하지 않도록, 1회 검증 후 캐시한다. 에디터 OnValidate에서 초기화된다.
+        [NonSerialized] private bool runtimeValidated;
+
+        public StatCatalogDefinition StatCatalog => statCatalog;
         public IReadOnlyList<StatEntry> Stats => stats ?? Array.Empty<StatEntry>();
 
         private void OnValidate()
         {
+            runtimeValidated = false;
             RepairMissingStats();
             NormalizeStats();
-            ValidateStats();
+            LogValidationWarnings();
         }
 
-        public void ValidateOrThrow()
+        public bool IsValid()
         {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (statCatalog == null)
+            {
+                reason = $"{name} is missing stat catalog.";
+                return false;
+            }
+
+            if (!statCatalog.IsValid(out string catalogReason))
+            {
+                reason = catalogReason;
+                return false;
+            }
+
             IReadOnlyList<StatEntry> statValues = Stats;
             if (statValues.Count == 0)
             {
-                throw new InvalidOperationException($"{name} has no stats.");
+                reason = $"{name} has no stats.";
+                return false;
             }
 
-            foreach (StatId statId in Enum.GetValues(typeof(StatId)))
+            IReadOnlyList<StatDefinition> statDefinitions = statCatalog.Stats;
+            for (int i = 0; i < statDefinitions.Count; i++)
             {
+                StatId statId = statDefinitions[i].StatId;
                 if (!ContainsStat(statValues, statId))
                 {
-                    throw new InvalidOperationException($"{name} is missing stat '{statId}'.");
+                    reason = $"{name} is missing stat '{statId}'.";
+                    return false;
                 }
             }
 
             for (int i = 0; i < statValues.Count; i++)
             {
                 StatEntry stat = statValues[i];
-                if (!stat.Bounds.IsValid)
+                if (!stat.IsValid(out string statReason))
                 {
-                    throw new InvalidOperationException($"{name} has invalid bounds for stat '{stat.StatId}'. Minimum is greater than maximum.");
+                    reason = $"{name} has invalid stat entry at index {i}. {statReason}";
+                    return false;
+                }
+
+                if (!GetBounds(stat.StatId).IsValid(out string boundsReason))
+                {
+                    reason = $"{name} has invalid bounds for stat '{stat.StatId}'. {boundsReason}";
+                    return false;
                 }
 
                 for (int j = i + 1; j < statValues.Count; j++)
                 {
                     if (statValues[j].StatId == stat.StatId)
                     {
-                        throw new InvalidOperationException($"{name} has duplicate stat '{stat.StatId}'.");
+                        reason = $"{name} has duplicate stat '{stat.StatId}'.";
+                        return false;
                     }
                 }
             }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (runtimeValidated)
+            {
+                return;
+            }
+
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+
+            runtimeValidated = true;
         }
 
         public float GetBaseValue(StatId statId)
@@ -101,35 +134,41 @@ namespace MP.Gameplay.Stats
 
         public StatBounds GetBounds(StatId statId)
         {
-            IReadOnlyList<StatEntry> statValues = Stats;
-            for (int i = statValues.Count - 1; i >= 0; i--)
+            if (statCatalog == null)
             {
-                if (statValues[i].StatId == statId)
-                {
-                    return statValues[i].Bounds;
-                }
+                throw new InvalidOperationException($"{name} is missing stat catalog.");
             }
 
-            throw new InvalidOperationException($"Missing bounds for stat '{statId}' in {name}.");
+            if (!statCatalog.TryGetDefinition(statId, out StatDefinition definition))
+            {
+                throw new InvalidOperationException($"{statCatalog.name} is missing stat definition '{statId}'.");
+            }
+
+            return definition.Bounds;
         }
 
-        private void ValidateStats()
+        private void LogValidationWarnings()
         {
-            IReadOnlyList<StatEntry> statValues = Stats;
-            foreach (StatId statId in Enum.GetValues(typeof(StatId)))
+            if (statCatalog == null)
             {
-                if (!ContainsStat(statValues, statId))
-                {
-                    Debug.LogWarning($"{name} is missing stat '{statId}'.", this);
-                }
+                Debug.LogWarning($"{name} has no stat catalog. Runtime stat bounds cannot be resolved.", this);
             }
 
+            // 누락 스탯은 RepairMissingStats에서 이미 기본값으로 채우고 경고하므로 여기서 다시 검사하지 않는다.
+            IReadOnlyList<StatEntry> statValues = Stats;
             for (int i = 0; i < statValues.Count; i++)
             {
                 StatEntry stat = statValues[i];
-                if (!stat.Bounds.IsValid)
+                if (statCatalog != null)
                 {
-                    Debug.LogWarning($"{name} has invalid bounds for stat '{stat.StatId}'. Minimum is greater than maximum.", this);
+                    if (!TryGetCatalogBounds(stat.StatId, out StatBounds bounds))
+                    {
+                        Debug.LogWarning($"{statCatalog.name} is missing stat definition '{stat.StatId}'.", statCatalog);
+                    }
+                    else if (!bounds.IsValid())
+                    {
+                        Debug.LogWarning($"{name} has invalid bounds for stat '{stat.StatId}'. Minimum is greater than maximum.", this);
+                    }
                 }
 
                 for (int j = i + 1; j < statValues.Count; j++)
@@ -145,26 +184,29 @@ namespace MP.Gameplay.Stats
 
         private void RepairMissingStats()
         {
-            IReadOnlyList<StatEntry> statValues = Stats;
-            var repairedStats = new List<StatEntry>(statValues.Count);
-            for (int i = 0; i < statValues.Count; i++)
+            if (statCatalog == null)
             {
-                repairedStats.Add(statValues[i]);
+                return;
             }
 
-            bool repaired = false;
-            foreach (StatId statId in Enum.GetValues(typeof(StatId)))
+            IReadOnlyList<StatEntry> statValues = Stats;
+            List<StatEntry> repairedStats = null;
+            IReadOnlyList<StatDefinition> statDefinitions = statCatalog.Stats;
+            for (int i = 0; i < statDefinitions.Count; i++)
             {
-                if (ContainsStat(repairedStats, statId))
+                StatId statId = statDefinitions[i].StatId;
+                IReadOnlyList<StatEntry> currentStats = repairedStats ?? statValues;
+                if (ContainsStat(currentStats, statId))
                 {
                     continue;
                 }
 
+                repairedStats ??= new List<StatEntry>(statValues);
                 repairedStats.Add(CreateDefaultStat(statId));
-                repaired = true;
+                Debug.LogWarning($"{name}에 누락된 StatEntry '{statId}'를 기본값으로 자동 추가했습니다. 실제 BaseValue는 Inspector에서 확인 후 조정하세요.", this);
             }
 
-            if (repaired)
+            if (repairedStats != null)
             {
                 stats = repairedStats.ToArray();
             }
@@ -177,27 +219,69 @@ namespace MP.Gameplay.Stats
                 return;
             }
 
+            if (statCatalog == null)
+            {
+                Debug.LogWarning($"{name} cannot normalize stat values because stat catalog is missing.", this);
+                return;
+            }
+
             for (int i = 0; i < stats.Length; i++)
             {
-                stats[i] = stats[i].Normalized();
+                StatEntry stat = stats[i];
+                if (!TryGetCatalogBounds(stat.StatId, out StatBounds bounds))
+                {
+                    Debug.LogWarning($"{name} cannot normalize stat '{stat.StatId}' because {statCatalog.name} has no matching definition.", this);
+                    continue;
+                }
+
+                float clampedValue = bounds.Clamp(stat.BaseValue);
+                if (!Mathf.Approximately(clampedValue, stat.BaseValue))
+                {
+                    Debug.LogWarning($"{name} normalized base value for stat '{stat.StatId}' from {stat.BaseValue} to {clampedValue}.", this);
+                }
+
+                stats[i] = stat.WithBaseValue(clampedValue);
             }
+        }
+
+        private bool TryGetCatalogBounds(StatId statId, out StatBounds bounds)
+        {
+            if (statCatalog != null && statCatalog.TryGetDefinition(statId, out StatDefinition definition))
+            {
+                bounds = definition.Bounds;
+                return true;
+            }
+
+            bounds = default;
+            return false;
         }
 
         private static StatEntry CreateDefaultStat(StatId statId)
         {
             return statId switch
             {
-                StatId.MaxHealth => new StatEntry(statId, 100f, new StatBounds(1f, float.MaxValue)),
-                StatId.Defense => new StatEntry(statId, 100f, new StatBounds(0f, float.MaxValue)),
-                StatId.AttackPower => new StatEntry(statId, 10f, new StatBounds(0f, float.MaxValue)),
-                StatId.AttackSpeed => new StatEntry(statId, 1f, new StatBounds(0f, float.MaxValue)),
-                StatId.AutoAttackRange => new StatEntry(statId, 1.5f, new StatBounds(0f, float.MaxValue)),
-                StatId.AutoProjectileRange => new StatEntry(statId, 5f, new StatBounds(0f, float.MaxValue)),
-                StatId.ManualProjectileRange => new StatEntry(statId, 7.5f, new StatBounds(0f, float.MaxValue)),
-                StatId.MoveSpeed => new StatEntry(statId, 5f, new StatBounds(0f, float.MaxValue)),
-                StatId.RespawnDelay => new StatEntry(statId, 3f, new StatBounds(0f, float.MaxValue)),
-                _ => new StatEntry(statId, 0f, new StatBounds(0f, float.MaxValue))
+                StatId.MaxHealth => new StatEntry(statId, 100f),
+                StatId.Defense => new StatEntry(statId, 100f),
+                StatId.AttackPower => new StatEntry(statId, 10f),
+                StatId.AttackSpeed => new StatEntry(statId, 1f),
+                StatId.AutoAttackRange => new StatEntry(statId, 1.5f),
+                StatId.AutoProjectileRange => new StatEntry(statId, 5f),
+                StatId.ManualProjectileRange => new StatEntry(statId, 7.5f),
+                StatId.MoveSpeed => new StatEntry(statId, 5f),
+                StatId.RespawnDelay => new StatEntry(statId, 3f),
+                _ => new StatEntry(statId, 0f)
             };
+        }
+
+        private static StatEntry[] CreateDefaultStats()
+        {
+            StatEntry[] defaultStats = new StatEntry[AllStatIds.Length];
+            for (int i = 0; i < AllStatIds.Length; i++)
+            {
+                defaultStats[i] = CreateDefaultStat(AllStatIds[i]);
+            }
+
+            return defaultStats;
         }
 
         private static bool ContainsStat(IReadOnlyList<StatEntry> statValues, StatId statId)

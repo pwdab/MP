@@ -61,7 +61,7 @@ namespace MP.Items
             }
 
             EnsureStats();
-            stats.AddModifiers(item.Definition.EquipStatModifiers, item);
+            stats.ReplaceModifiersFrom(CreateModifierSource(item), item.Definition.EquipStatModifiers);
             RaiseSlotEquipped(slotId, item);
             return true;
         }
@@ -80,7 +80,7 @@ namespace MP.Items
 
                 EnsureStats();
                 ItemInstance removedItem = slot.Item;
-                stats.RemoveModifiersFrom(removedItem);
+                stats.RemoveModifiersFrom(CreateModifierSource(removedItem));
                 slot.Clear();
                 RaiseSlotUnequipped(slot.SlotId, removedItem);
                 removedAny = true;
@@ -99,7 +99,7 @@ namespace MP.Items
 
             EnsureStats();
             ItemInstance removedItem = slot.Item;
-            stats.RemoveModifiersFrom(removedItem);
+            stats.RemoveModifiersFrom(CreateModifierSource(removedItem));
             slot.Clear();
             RaiseSlotUnequipped(slotId, removedItem);
             return true;
@@ -226,9 +226,14 @@ namespace MP.Items
                     continue;
                 }
 
-                stats.RemoveModifiersFrom(slot.Item);
-                stats.AddModifiers(slot.Item.Definition.EquipStatModifiers, slot.Item);
+                stats.ReplaceModifiersFrom(CreateModifierSource(slot.Item), slot.Item.Definition.EquipStatModifiers);
             }
+        }
+
+        private static StatModifierSource CreateModifierSource(ItemInstance item)
+        {
+            string displayName = item != null && item.Definition != null ? item.Definition.DisplayName : "Equipment";
+            return new StatModifierSource(item, StatModifierSourceType.Equipment, displayName);
         }
 
         private void EnsureEquippedSlots()

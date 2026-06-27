@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace MP.Gameplay.Stages
@@ -59,7 +60,93 @@ namespace MP.Gameplay.Stages
             }
         }
 
-        internal void Validate()
+        public bool IsValid()
+        {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (float.IsNaN(waveDuration) || float.IsInfinity(waveDuration) || waveDuration < 0f)
+            {
+                reason = $"{DisplayName} has invalid wave duration '{waveDuration}'.";
+                return false;
+            }
+
+            if (float.IsNaN(spawnDuration) || float.IsInfinity(spawnDuration) || spawnDuration < 0f || spawnDuration > waveDuration)
+            {
+                reason = $"{DisplayName} has invalid spawn duration '{spawnDuration}'.";
+                return false;
+            }
+
+            if (float.IsNaN(spawnInterval) || float.IsInfinity(spawnInterval) || spawnInterval <= 0f)
+            {
+                reason = $"{DisplayName} has invalid spawn interval '{spawnInterval}'.";
+                return false;
+            }
+
+            if (maxAliveEnemies < 0)
+            {
+                reason = $"{DisplayName} has invalid max alive enemies '{maxAliveEnemies}'.";
+                return false;
+            }
+
+            if (bossWave)
+            {
+                if (bossPrefab == null)
+                {
+                    reason = $"{DisplayName} is a boss wave but has no boss prefab.";
+                    return false;
+                }
+
+                if (float.IsNaN(bossSpawnTime) || float.IsInfinity(bossSpawnTime) || bossSpawnTime < 0f || bossSpawnTime > waveDuration)
+                {
+                    reason = $"{DisplayName} has invalid boss spawn time '{bossSpawnTime}'.";
+                    return false;
+                }
+            }
+
+            bool hasPositiveSpawnEntry = false;
+            if (spawnEntries != null)
+            {
+                for (int i = 0; i < spawnEntries.Length; i++)
+                {
+                    EnemySpawnEntry entry = spawnEntries[i];
+                    if (entry == null)
+                    {
+                        reason = $"{DisplayName} has an empty spawn entry at index {i}.";
+                        return false;
+                    }
+
+                    if (!entry.IsValid(out string entryReason))
+                    {
+                        reason = $"{DisplayName} spawn entry {i} is invalid: {entryReason}";
+                        return false;
+                    }
+
+                    hasPositiveSpawnEntry |= entry.Weight > 0f;
+                }
+            }
+
+            if (!bossWave && !hasPositiveSpawnEntry)
+            {
+                reason = $"{DisplayName} has no usable enemy spawn entry.";
+                return false;
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+        }
+
+        internal void Normalize()
         {
             waveDuration = Mathf.Max(0f, waveDuration);
             spawnDuration = Mathf.Clamp(spawnDuration, 0f, waveDuration);
@@ -74,7 +161,7 @@ namespace MP.Gameplay.Stages
 
             for (int i = 0; i < spawnEntries.Length; i++)
             {
-                spawnEntries[i]?.Validate();
+                spawnEntries[i]?.Normalize();
             }
         }
     }

@@ -27,8 +27,9 @@ namespace MP.Editor
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("statCatalog"));
             statsList.DoLayoutList();
-            EditorGUILayout.HelpBox("Each StatId should exist once. Base Value is clamped between Min and Max.", MessageType.Info);
+            EditorGUILayout.HelpBox("Each StatId should exist once. Stat bounds are read from the assigned Stat Catalog.", MessageType.Info);
             serializedObject.ApplyModifiedProperties();
         }
 
@@ -43,15 +44,7 @@ namespace MP.Editor
         {
             string statName = stat.FindPropertyRelative("statId").enumDisplayNames[stat.FindPropertyRelative("statId").enumValueIndex];
             float baseValue = stat.FindPropertyRelative("baseValue").floatValue;
-            SerializedProperty bounds = stat.FindPropertyRelative("bounds");
-            float minimum = bounds.FindPropertyRelative("minimum").floatValue;
-            float maximum = bounds.FindPropertyRelative("maximum").floatValue;
-            return new GUIContent($"{statName}  Base {baseValue:0.##}  [{minimum:0.##}, {FormatMaximum(maximum)}]");
-        }
-
-        private static string FormatMaximum(float maximum)
-        {
-            return float.IsPositiveInfinity(maximum) || maximum >= float.MaxValue ? "inf" : maximum.ToString("0.##");
+            return new GUIContent($"{statName}  Base {baseValue:0.##}");
         }
     }
 
@@ -209,15 +202,33 @@ namespace MP.Editor
         {
             SerializedProperty statId = property.FindPropertyRelative("statId");
             SerializedProperty baseValue = property.FindPropertyRelative("baseValue");
+
+            EditorGUI.BeginProperty(position, label, property);
+            Rect line = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+            float half = (position.width - 4f) * 0.5f;
+            EditorGUI.PropertyField(new Rect(position.x, line.y, half, line.height), statId, GUIContent.none);
+            EditorGUI.PropertyField(new Rect(position.x + half + 4f, line.y, half, line.height), baseValue, new GUIContent("Base"));
+            EditorGUI.EndProperty();
+        }
+
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        {
+            return EditorGUIUtility.singleLineHeight;
+        }
+    }
+
+    [CustomPropertyDrawer(typeof(StatDefinition))]
+    public sealed class StatDefinitionDrawer : PropertyDrawer
+    {
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
+            SerializedProperty statId = property.FindPropertyRelative("statId");
             SerializedProperty bounds = property.FindPropertyRelative("bounds");
 
             EditorGUI.BeginProperty(position, label, property);
             Rect line = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
-            EditorGUI.PropertyField(line, statId);
-
-            line.y += EditorGUIUtility.singleLineHeight + 2f;
             float third = (position.width - 8f) / 3f;
-            EditorGUI.PropertyField(new Rect(position.x, line.y, third, line.height), baseValue, new GUIContent("Base"));
+            EditorGUI.PropertyField(new Rect(position.x, line.y, third, line.height), statId, GUIContent.none);
             EditorGUI.PropertyField(new Rect(position.x + third + 4f, line.y, third, line.height), bounds.FindPropertyRelative("minimum"), new GUIContent("Min"));
             EditorGUI.PropertyField(new Rect(position.x + (third + 4f) * 2f, line.y, third, line.height), bounds.FindPropertyRelative("maximum"), new GUIContent("Max"));
             EditorGUI.EndProperty();
@@ -225,7 +236,7 @@ namespace MP.Editor
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            return EditorGUIUtility.singleLineHeight * 2f + 4f;
+            return EditorGUIUtility.singleLineHeight;
         }
     }
 

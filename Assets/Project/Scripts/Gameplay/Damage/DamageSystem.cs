@@ -8,9 +8,9 @@ namespace MP.Gameplay.Damage
     {
         public static DamageResult ApplyDamage(DamageRequest request)
         {
-            if (request.Target == null)
+            if (!request.IsValid(out string reason))
             {
-                Debug.LogWarning("Damage request ignored because target is missing.");
+                Debug.LogWarning(reason);
                 return new DamageResult(request.Context, null, request.BaseDamage, 0f, false);
             }
 
@@ -38,7 +38,7 @@ namespace MP.Gameplay.Damage
                 return clampedBaseDamage;
             }
 
-            float defense = stats.Defense;
+            float defense = stats.GetValue(StatId.Defense);
             if (defense <= 0f)
             {
                 return clampedBaseDamage;

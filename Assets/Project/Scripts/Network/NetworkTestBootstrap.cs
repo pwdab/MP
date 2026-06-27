@@ -184,8 +184,14 @@ namespace MP.Network
 
         private void UnregisterReviveMessageHandler(NetworkManager networkManager)
         {
-            if (!registeredReviveMessageHandler || networkManager.CustomMessagingManager == null)
+            if (!registeredReviveMessageHandler)
             {
+                return;
+            }
+
+            if (networkManager == null || networkManager.CustomMessagingManager == null)
+            {
+                registeredReviveMessageHandler = false;
                 return;
             }
 
@@ -214,9 +220,15 @@ namespace MP.Network
                     continue;
                 }
 
+                if (player.TryGetComponent(out NetworkRespawnAdapter respawnAdapter))
+                {
+                    respawnAdapter.RespawnServer();
+                    return;
+                }
+
                 if (player.TryGetComponent(out RespawnComponent respawn))
                 {
-                    respawn.RespawnServer();
+                    respawn.Respawn();
                 }
 
                 return;

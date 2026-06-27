@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using MP.Gameplay.Stats;
 using MP.Items;
@@ -15,6 +16,7 @@ namespace MP.Editor
         private const string TestDataFolder = "Assets/Project/Data/Items/Test";
         private const string TestPrefabFolder = "Assets/Project/Prefabs/Items/Test";
 
+        private const string StatCatalogPath = "Assets/Project/Data/Stats/PrototypeStatCatalog.asset";
         private const string BaseStatsPath = TestDataFolder + "/ItemSystemTestBaseStats.asset";
         private const string PotionPath = TestDataFolder + "/TestPotion.asset";
         private const string SwordPath = TestDataFolder + "/TestSword.asset";
@@ -28,7 +30,7 @@ namespace MP.Editor
         {
             EnsureFolders();
 
-            EntityStatsDefinition baseStats = EnsureAsset<EntityStatsDefinition>(BaseStatsPath);
+            EntityStatsDefinition baseStats = EnsureBaseStats();
             StatModifierDefinition swordModifier = EnsureStatModifierDefinition(SwordModifierPath, StatId.AttackPower, StatModifierType.Flat, 5f);
             StatModifierDefinition armorModifier = EnsureStatModifierDefinition(ArmorModifierPath, StatId.MaxHealth, StatModifierType.Flat, 25f);
             GameObject droppedItemPrefab = EnsureDroppedItemPrefab();
@@ -57,7 +59,7 @@ namespace MP.Editor
         {
             EnsureFolders();
 
-            EntityStatsDefinition baseStats = EnsureAsset<EntityStatsDefinition>(BaseStatsPath);
+            EntityStatsDefinition baseStats = EnsureBaseStats();
             StatModifierDefinition swordModifier = EnsureStatModifierDefinition(SwordModifierPath, StatId.AttackPower, StatModifierType.Flat, 5f);
             StatModifierDefinition armorModifier = EnsureStatModifierDefinition(ArmorModifierPath, StatId.MaxHealth, StatModifierType.Flat, 25f);
             GameObject droppedItemPrefab = EnsureDroppedItemPrefab();
@@ -68,7 +70,7 @@ namespace MP.Editor
 
             RemoveCombatNetworkTestHud();
 
-            ItemSystemTestRunner runner = Object.FindFirstObjectByType<ItemSystemTestRunner>();
+            ItemSystemTestRunner runner = UnityEngine.Object.FindFirstObjectByType<ItemSystemTestRunner>();
             if (runner == null)
             {
                 Debug.LogWarning("Open scene has no ItemSystemTestRunner. Creating one.");
@@ -115,18 +117,60 @@ namespace MP.Editor
 
         private static void RemoveCombatNetworkTestHud()
         {
-            CombatNetworkTestHud hud = Object.FindFirstObjectByType<CombatNetworkTestHud>();
+            CombatNetworkTestHud hud = UnityEngine.Object.FindFirstObjectByType<CombatNetworkTestHud>();
             if (hud != null)
             {
-                Object.DestroyImmediate(hud.gameObject);
+                UnityEngine.Object.DestroyImmediate(hud.gameObject);
             }
         }
 
         private static void EnsureFolders()
         {
             Directory.CreateDirectory("Assets/Project/Scenes/Test");
+            Directory.CreateDirectory("Assets/Project/Data/Stats");
             Directory.CreateDirectory(TestDataFolder);
             Directory.CreateDirectory(TestPrefabFolder);
+        }
+
+        private static EntityStatsDefinition EnsureBaseStats()
+        {
+            StatCatalogDefinition statCatalog = EnsureStatCatalogDefinition();
+            EntityStatsDefinition baseStats = EnsureAsset<EntityStatsDefinition>(BaseStatsPath);
+
+            var serializedStats = new SerializedObject(baseStats);
+            serializedStats.FindProperty("statCatalog").objectReferenceValue = statCatalog;
+            serializedStats.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(baseStats);
+            return baseStats;
+        }
+
+        private static StatCatalogDefinition EnsureStatCatalogDefinition()
+        {
+            StatCatalogDefinition catalog = AssetDatabase.LoadAssetAtPath<StatCatalogDefinition>(StatCatalogPath);
+            if (catalog != null)
+            {
+                return catalog;
+            }
+
+            catalog = ScriptableObject.CreateInstance<StatCatalogDefinition>();
+            AssetDatabase.CreateAsset(catalog, StatCatalogPath);
+
+            var serializedCatalog = new SerializedObject(catalog);
+            SerializedProperty statsProperty = serializedCatalog.FindProperty("stats");
+            Array statIds = Enum.GetValues(typeof(StatId));
+            statsProperty.arraySize = statIds.Length;
+            for (int i = 0; i < statIds.Length; i++)
+            {
+                StatDefinition definition = StatCatalogDefinition.CreateDefaultDefinition((StatId)statIds.GetValue(i));
+                SerializedProperty entry = statsProperty.GetArrayElementAtIndex(i);
+                entry.FindPropertyRelative("statId").enumValueIndex = (int)definition.StatId;
+                entry.FindPropertyRelative("bounds").FindPropertyRelative("minimum").floatValue = definition.Bounds.Minimum;
+                entry.FindPropertyRelative("bounds").FindPropertyRelative("maximum").floatValue = definition.Bounds.Maximum;
+            }
+
+            serializedCatalog.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(catalog);
+            return catalog;
         }
 
         private static void CreateCamera()
@@ -189,7 +233,7 @@ namespace MP.Editor
             droppedItem.AddComponent<DroppedItem>();
 
             prefab = PrefabUtility.SaveAsPrefabAsset(droppedItem, DroppedItemPrefabPath);
-            Object.DestroyImmediate(droppedItem);
+            UnityEngine.Object.DestroyImmediate(droppedItem);
             return prefab;
         }
 
@@ -259,7 +303,7 @@ namespace MP.Editor
             return material;
         }
 
-        private static void SetObject(Object target, string propertyName, Object value)
+        private static void SetObject(UnityEngine.Object target, string propertyName, UnityEngine.Object value)
         {
             var serializedObject = new SerializedObject(target);
             serializedObject.Update();

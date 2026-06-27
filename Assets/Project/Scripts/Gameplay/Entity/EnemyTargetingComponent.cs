@@ -5,7 +5,7 @@ namespace MP.Gameplay.Entity
     public sealed class EnemyTargetingComponent : MonoBehaviour
     {
         [SerializeField] private CastleEntity fallbackCastle;
-        [SerializeField] private float playerDetectionRange = 5f;
+        [SerializeField, Min(0f)] private float playerDetectionRange = 5f;
 
         public float PlayerDetectionRange => playerDetectionRange;
 
@@ -41,14 +41,14 @@ namespace MP.Gameplay.Entity
 
         private PlayerEntity FindNearestDetectedPlayer(out float nearestDistanceSqr)
         {
-            PlayerEntity[] players = FindObjectsByType<PlayerEntity>(FindObjectsSortMode.None);
+            var players = PlayerEntityRegistry.ActivePlayers;
             float range = Mathf.Max(0f, playerDetectionRange);
             float rangeSqr = range * range;
             nearestDistanceSqr = float.MaxValue;
             PlayerEntity nearestPlayer = null;
             Vector2 origin = transform.position;
 
-            for (int i = 0; i < players.Length; i++)
+            for (int i = 0; i < players.Count; i++)
             {
                 PlayerEntity player = players[i];
                 if (player == null || player.Health == null || player.Health.IsDead)
@@ -73,7 +73,7 @@ namespace MP.Gameplay.Entity
         {
             if (fallbackCastle == null)
             {
-                fallbackCastle = FindFirstObjectByType<CastleEntity>();
+                fallbackCastle = CastleEntityRegistry.ActiveCastle;
             }
 
             return fallbackCastle;

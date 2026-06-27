@@ -1,9 +1,13 @@
+using System;
 using MP.Gameplay.Entity;
-using MP.Network;
 using UnityEngine;
 
 namespace MP.Gameplay.Stages
 {
+    /*
+        적 사망 시 골드 오브젝트를 생성하는 Gameplay 규칙
+        생성된 오브젝트를 네트워크에 스폰할지는 Network 어댑터가 결정
+    */
     [RequireComponent(typeof(HealthComponent))]
     public sealed class EnemyGoldDropComponent : MonoBehaviour
     {
@@ -12,6 +16,8 @@ namespace MP.Gameplay.Stages
         [SerializeField, Min(0f)] private float scatterRadius = 0.35f;
 
         private HealthComponent health;
+
+        public event Action<GameObject> GoldDropped;
 
         private void Awake()
         {
@@ -36,19 +42,19 @@ namespace MP.Gameplay.Stages
 
         private void OnDied(HealthComponent _)
         {
-            if (!NetworkContext.HasServerAuthority() || goldAmount <= 0 || goldPrefab == null)
+            if (goldAmount <= 0 || goldPrefab == null)
             {
                 return;
             }
 
-            Vector2 offset = Random.insideUnitCircle * Mathf.Max(0f, scatterRadius);
+            Vector2 offset = UnityEngine.Random.insideUnitCircle * Mathf.Max(0f, scatterRadius);
             GameObject goldObject = Instantiate(goldPrefab, transform.position + (Vector3)offset, Quaternion.identity);
             if (goldObject.TryGetComponent(out GoldPickupComponent pickup))
             {
                 pickup.Initialize(goldAmount);
             }
 
-            NetworkSpawnUtility.TrySpawnNetworkObject(goldObject);
+            GoldDropped?.Invoke(goldObject);
         }
     }
 }

@@ -27,7 +27,7 @@ namespace MP.Progression.Jobs
             }
 
             stats ??= GetComponent<StatsComponent>();
-            stats.RemoveModifiersFrom(this);
+            stats.RemoveModifiersFrom(CreateModifierSource());
             currentJob = job;
             ApplyCurrentJobModifiers();
         }
@@ -40,7 +40,13 @@ namespace MP.Progression.Jobs
             }
 
             stats ??= GetComponent<StatsComponent>();
-            stats.AddModifiers(currentJob.StatModifiers, this);
+            stats.ReplaceModifiersFrom(CreateModifierSource(), currentJob.StatModifiers);
+        }
+
+        private StatModifierSource CreateModifierSource()
+        {
+            string displayName = currentJob != null ? currentJob.DisplayName : "Job";
+            return new StatModifierSource(this, StatModifierSourceType.Job, displayName);
         }
     }
 }

@@ -2,7 +2,6 @@ using MP.Gameplay.Damage;
 using MP.Gameplay.Entity;
 using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
-using MP.Network;
 using UnityEngine;
 
 namespace MP.Gameplay.Combat
@@ -33,13 +32,13 @@ namespace MP.Gameplay.Combat
                 return;
             }
 
-            if (!NetworkContext.HasServerAuthority() || !autoAttack || characterState == null || !characterState.CanAttack || !characterState.HasMoveDirection)
+            if (!autoAttack || characterState == null || !characterState.CanAttack || !characterState.HasMoveDirection)
             {
                 return;
             }
 
             EntityRuntimeStats runtimeStats = stats.Stats;
-            int attackCount = attackScheduler.Tick(deltaTime, runtimeStats.AttackSpeed);
+            int attackCount = attackScheduler.Tick(deltaTime, runtimeStats.GetValue(StatId.AttackSpeed));
             for (int i = 0; i < attackCount; i++)
             {
                 AttackInMoveDirection(runtimeStats);
@@ -50,7 +49,7 @@ namespace MP.Gameplay.Combat
         {
             Vector2 origin = transform.position;
             Vector2 direction = characterState.LastMoveDirection;
-            float range = runtimeStats.AutoAttackRange;
+            float range = runtimeStats.GetValue(StatId.AutoAttackRange);
             float rangeSqr = range * range;
             float minimumDot = Mathf.Cos(Mathf.Deg2Rad * attackHalfAngle);
 
@@ -74,7 +73,7 @@ namespace MP.Gameplay.Combat
                     continue;
                 }
 
-                DamageSystem.ApplyDamage(new DamageRequest(DamageContext.FromInstigator(gameObject), target.Health, runtimeStats.AttackPower));
+                DamageSystem.ApplyDamage(new DamageRequest(DamageContext.FromInstigator(gameObject), target.Health, runtimeStats.GetValue(StatId.AttackPower)));
             }
         }
     }

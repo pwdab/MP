@@ -146,7 +146,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1998c75c86c8471f89e0e5248d57b7f0, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MP.UI.CombatNetworkTestHud
 --- !u!4 &44301117
 Transform:
@@ -550,7 +550,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d660df66fcd34996abc4b9ee3767f3cb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Entity.RespawnComponent
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stages.RespawnComponent
   autoRespawnOnDeath: 1
 --- !u!1 &1559752136
 GameObject:
@@ -649,6 +649,7 @@ GameObject:
   - component: {fileID: 2037697080}
   - component: {fileID: 2037697079}
   - component: {fileID: 2037697084}
+  - component: {fileID: 2037697085}
   m_Layer: 0
   m_Name: NetworkSimulationRoot
   m_TagString: Untagged
@@ -667,7 +668,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3713d74eb00f09a448fd9fda7c83c07d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Combat.CombatSimulationRunner
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Network.CombatSimulationRunner
   authority: {fileID: 0}
   combatants: []
   tickInUpdate: 0
@@ -752,6 +753,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MP.Network.NetworkTestCommands
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &2037697085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2037697078}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6515e10293ca4b9eb7d1c22c07203d81, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MP.Gameplay.Stages.EnemyRewardSystem
+  enemyKilledEventChannel: {fileID: 11400000, guid: 2144f91db9d54250802bf11455206769, type: 2}
+  rewardEntries:
+  - enemyId: test_enemy
+    experienceReward: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

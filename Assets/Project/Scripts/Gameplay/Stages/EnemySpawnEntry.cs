@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace MP.Gameplay.Stages
@@ -17,7 +18,38 @@ namespace MP.Gameplay.Stages
 
         public string DisplayName => enemyPrefab != null ? enemyPrefab.name : "Missing Enemy Prefab";
 
-        internal void Validate()
+        public bool IsValid()
+        {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (enemyPrefab == null)
+            {
+                reason = "EnemySpawnEntry enemy prefab is missing.";
+                return false;
+            }
+
+            if (float.IsNaN(weight) || float.IsInfinity(weight) || weight < 0f)
+            {
+                reason = $"EnemySpawnEntry has invalid weight '{weight}'.";
+                return false;
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+        }
+
+        internal void Normalize()
         {
             weight = Mathf.Max(0f, weight);
         }

@@ -1,6 +1,7 @@
-using MP.Gameplay.Entity;
+﻿using MP.Gameplay.Entity;
 using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
+using System;
 using UnityEngine;
 
 namespace MP.Gameplay.Combat
@@ -22,6 +23,8 @@ namespace MP.Gameplay.Combat
 
         private StatsComponent statsComponent;
         private CharacterStateComponent characterState;
+
+        public event Action<ProjectileSpawnRequest> ProjectileRequested;
 
         public float CurrentAttackRange
         {
@@ -48,7 +51,7 @@ namespace MP.Gameplay.Combat
             }
         }
 
-        public void TickServer(float deltaTime)
+        public void Tick(float deltaTime)
         {
             if (!StageSimulationGate.CanRunCombatSimulation())
             {
@@ -61,7 +64,7 @@ namespace MP.Gameplay.Combat
             }
 
             EntityRuntimeStats stats = statsComponent.Stats;
-            int attackCount = attackScheduler.Tick(deltaTime, stats.AttackSpeed);
+            int attackCount = attackScheduler.Tick(deltaTime, stats.GetValue(StatId.AttackSpeed));
 
             for (int i = 0; i < attackCount; i++)
             {
@@ -96,17 +99,17 @@ namespace MP.Gameplay.Combat
                 direction.Normalize();
             }
 
-            NetworkProjectileSpawner.TrySpawn(projectilePrefab, firePoint.position, direction, team, stats.AttackPower, attackRange, gameObject);
+            ProjectileRequested?.Invoke(new ProjectileSpawnRequest(projectilePrefab, firePoint.position, direction, team, stats.GetValue(StatId.AttackPower), attackRange, gameObject));
         }
 
         private float GetAttackRange(EntityRuntimeStats stats)
         {
             if (!useAutoAttackRange)
             {
-                return stats.AutoProjectileRange;
+                return stats.GetValue(StatId.AutoProjectileRange);
             }
 
-            return stats.AutoAttackRange * Mathf.Max(0f, autoAttackRangeMultiplier);
+            return stats.GetValue(StatId.AutoAttackRange) * Mathf.Max(0f, autoAttackRangeMultiplier);
         }
     }
 }

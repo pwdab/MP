@@ -1,7 +1,9 @@
+using System;
 using MP.Gameplay.Combat;
 using MP.Gameplay.Entity;
 using MP.Gameplay.Events;
 using MP.Gameplay.Movement;
+using MP.Gameplay.Stages;
 using MP.Gameplay.Stats;
 using MP.Items;
 using MP.Network;
@@ -27,6 +29,7 @@ namespace MP.Editor
         private const string EnemySpritePath = TestSpriteFolder + "/TestEnemySquare.png";
         private const string ProjectileSpritePath = TestSpriteFolder + "/TestProjectileSquare.png";
         private const string EnemyKilledEventChannelPath = "Assets/Project/Data/Events/EnemyKilledEventChannel.asset";
+        private const string StatCatalogPath = "Assets/Project/Data/Stats/PrototypeStatCatalog.asset";
         private const string TestPlayerStatsPath = "Assets/Project/Data/Players/TestPlayerStats.asset";
         private const string TestEnemyStatsPath = "Assets/Project/Data/Enemies/TestEnemyStats.asset";
         private const string TestEnemyDropTablePath = "Assets/Project/Data/RewardTables/TestEnemyDropTable.asset";
@@ -68,13 +71,13 @@ namespace MP.Editor
             RemoveSceneTestPlayer();
             RemoveItemSystemTestRunner();
 
-            NetworkTestBootstrap bootstrap = Object.FindFirstObjectByType<NetworkTestBootstrap>();
+            NetworkTestBootstrap bootstrap = UnityEngine.Object.FindFirstObjectByType<NetworkTestBootstrap>();
             if (bootstrap != null)
             {
                 AssignNetworkPrefabs(bootstrap, projectilePrefab);
             }
 
-            NetworkManager networkManager = Object.FindFirstObjectByType<NetworkManager>();
+            NetworkManager networkManager = UnityEngine.Object.FindFirstObjectByType<NetworkManager>();
             if (networkManager != null)
             {
                 networkManager.NetworkConfig.PlayerPrefab = playerPrefab;
@@ -125,6 +128,9 @@ namespace MP.Editor
             gameObject.AddComponent<SimulationAuthority>();
             gameObject.AddComponent<NetworkCombatAuthority>();
             gameObject.AddComponent<NetworkTestCommands>();
+            EnemyRewardSystem rewardSystem = gameObject.AddComponent<EnemyRewardSystem>();
+            NetworkEnemyRewardSystemAdapter rewardAdapter = gameObject.AddComponent<NetworkEnemyRewardSystemAdapter>();
+            AssignEnemyRewardSystem(rewardSystem, rewardAdapter, EnsureEnemyKilledEventChannel());
         }
 
         private static void CreateTestEnemy(EnemyKilledEventChannel enemyKilledEventChannel, GameObject projectilePrefab)
@@ -147,7 +153,7 @@ namespace MP.Editor
             AssignBaseStats(stats, EnsureTestEnemyStats());
             AssignTargetableTeam(targetable, TeamId.Enemy);
             EnsureEnemyCombatComponents(gameObject, projectilePrefab);
-            AssignEnemyKilledEventChannel(enemy, enemyKilledEventChannel);
+            AssignEnemyKilledEventChannel(enemy, enemyKilledEventChannel, "test_enemy");
             AssignEnemyDropTable(itemDrop, EnsureTestEnemyDropTable());
         }
 
@@ -182,7 +188,7 @@ namespace MP.Editor
 
         private static void CreateHud()
         {
-            if (Object.FindFirstObjectByType<CombatNetworkTestHud>() != null)
+            if (UnityEngine.Object.FindFirstObjectByType<CombatNetworkTestHud>() != null)
             {
                 return;
             }
@@ -219,7 +225,7 @@ namespace MP.Editor
             LineRenderer legacyLineRenderer = player.GetComponent<LineRenderer>();
             if (legacyLineRenderer != null)
             {
-                Object.DestroyImmediate(legacyLineRenderer);
+                UnityEngine.Object.DestroyImmediate(legacyLineRenderer);
             }
 
             if (!player.TryGetComponent(out NetworkTransform _))
@@ -255,9 +261,19 @@ namespace MP.Editor
                 player.AddComponent<CharacterStateComponent>();
             }
 
+            if (!player.TryGetComponent(out PlayerEntityMovementComponent _))
+            {
+                player.AddComponent<PlayerEntityMovementComponent>();
+            }
+
             if (!player.TryGetComponent(out RespawnComponent respawn))
             {
                 respawn = player.AddComponent<RespawnComponent>();
+            }
+
+            if (!player.TryGetComponent(out NetworkRespawnAdapter _))
+            {
+                player.AddComponent<NetworkRespawnAdapter>();
             }
 
             AssignRespawnSettings(respawn, false);
@@ -277,14 +293,14 @@ namespace MP.Editor
                 player.AddComponent<NetworkHealthState>();
             }
 
-            if (!player.TryGetComponent(out NetworkPlayerMovement _))
+            if (!player.TryGetComponent(out PlayerNetworkMovementComponent _))
             {
-                player.AddComponent<NetworkPlayerMovement>();
+                player.AddComponent<PlayerNetworkMovementComponent>();
             }
 
-            if (!player.TryGetComponent(out LocalCameraFollow _))
+            if (!player.TryGetComponent(out LocalPlayerCameraFollowComponent _))
             {
-                player.AddComponent<LocalCameraFollow>();
+                player.AddComponent<LocalPlayerCameraFollowComponent>();
             }
 
             CombatComponent combat = player.GetComponent<CombatComponent>();
@@ -298,6 +314,11 @@ namespace MP.Editor
             if (!player.TryGetComponent(out CombatRangeIndicator _))
             {
                 player.AddComponent<CombatRangeIndicator>();
+            }
+
+            if (!player.TryGetComponent(out ManualProjectileAttackComponent _))
+            {
+                player.AddComponent<ManualProjectileAttackComponent>();
             }
 
             NetworkProjectileLauncher launcher = player.GetComponent<NetworkProjectileLauncher>();
@@ -323,8 +344,10 @@ namespace MP.Editor
                 player.AddComponent<StatsComponent>();
                 player.AddComponent<HealthComponent>();
                 player.AddComponent<CharacterStateComponent>();
+                player.AddComponent<PlayerEntityMovementComponent>();
                 RespawnComponent respawn = player.AddComponent<RespawnComponent>();
                 AssignRespawnSettings(respawn, false);
+                player.AddComponent<NetworkRespawnAdapter>();
                 player.AddComponent<PlayerEntity>();
                 EnsurePlayerProgressionComponents(player);
                 player.AddComponent<TargetableComponent>();
@@ -334,7 +357,7 @@ namespace MP.Editor
                 EnsurePlayerGameplayComponents(player, projectilePrefab);
 
                 prefab = PrefabUtility.SaveAsPrefabAsset(player, PlayerPrefabPath);
-                Object.DestroyImmediate(player);
+                UnityEngine.Object.DestroyImmediate(player);
             }
             else
             {
@@ -361,11 +384,12 @@ namespace MP.Editor
             projectile.transform.localScale = new Vector3(0.35f, 0.35f, 1f);
             projectile.AddComponent<NetworkObject>();
             projectile.AddComponent<NetworkTransform>();
+            projectile.AddComponent<ProjectileComponent>();
             projectile.AddComponent<NetworkProjectile>();
             EnsureSpriteRenderer(projectile, ProjectileSpritePath, Color.yellow);
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(projectile, ProjectilePrefabPath);
-            Object.DestroyImmediate(projectile);
+            UnityEngine.Object.DestroyImmediate(projectile);
 
             return prefab;
         }
@@ -381,7 +405,7 @@ namespace MP.Editor
 
         private static void RemoveNetworkObjectFromNetworkManager()
         {
-            NetworkManager networkManager = Object.FindFirstObjectByType<NetworkManager>();
+            NetworkManager networkManager = UnityEngine.Object.FindFirstObjectByType<NetworkManager>();
             if (networkManager == null)
             {
                 return;
@@ -390,7 +414,7 @@ namespace MP.Editor
             NetworkObject networkObject = networkManager.GetComponent<NetworkObject>();
             if (networkObject != null)
             {
-                Object.DestroyImmediate(networkObject);
+                UnityEngine.Object.DestroyImmediate(networkObject);
             }
         }
 
@@ -399,16 +423,16 @@ namespace MP.Editor
             GameObject player = GameObject.Find("TestPlayer");
             if (player != null && !PrefabUtility.IsPartOfPrefabAsset(player))
             {
-                Object.DestroyImmediate(player);
+                UnityEngine.Object.DestroyImmediate(player);
             }
         }
 
         private static void RemoveItemSystemTestRunner()
         {
-            ItemSystemTestRunner runner = Object.FindFirstObjectByType<ItemSystemTestRunner>();
+            ItemSystemTestRunner runner = UnityEngine.Object.FindFirstObjectByType<ItemSystemTestRunner>();
             if (runner != null)
             {
-                Object.DestroyImmediate(runner.gameObject);
+                UnityEngine.Object.DestroyImmediate(runner.gameObject);
             }
         }
 
@@ -461,7 +485,7 @@ namespace MP.Editor
                 texture.SetPixels32(pixels);
                 texture.Apply();
                 System.IO.File.WriteAllBytes(path, texture.EncodeToPNG());
-                Object.DestroyImmediate(texture);
+                UnityEngine.Object.DestroyImmediate(texture);
                 AssetDatabase.ImportAsset(path);
             }
 
@@ -531,16 +555,52 @@ namespace MP.Editor
 
         private static EntityStatsDefinition EnsureStatsDefinition(string path)
         {
+            StatCatalogDefinition statCatalog = EnsureStatCatalogDefinition();
             EntityStatsDefinition stats = AssetDatabase.LoadAssetAtPath<EntityStatsDefinition>(path);
-            if (stats != null)
+            if (stats == null)
             {
-                return stats;
+                stats = ScriptableObject.CreateInstance<EntityStatsDefinition>();
+                AssetDatabase.CreateAsset(stats, path);
             }
 
-            stats = ScriptableObject.CreateInstance<EntityStatsDefinition>();
-            AssetDatabase.CreateAsset(stats, path);
+            var serializedStats = new SerializedObject(stats);
+            serializedStats.FindProperty("statCatalog").objectReferenceValue = statCatalog;
+            serializedStats.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(stats);
             AssetDatabase.SaveAssets();
             return stats;
+        }
+
+        private static StatCatalogDefinition EnsureStatCatalogDefinition()
+        {
+            EnsureFolder("Assets/Project/Data", "Stats");
+
+            StatCatalogDefinition catalog = AssetDatabase.LoadAssetAtPath<StatCatalogDefinition>(StatCatalogPath);
+            if (catalog != null)
+            {
+                return catalog;
+            }
+
+            catalog = ScriptableObject.CreateInstance<StatCatalogDefinition>();
+            AssetDatabase.CreateAsset(catalog, StatCatalogPath);
+
+            var serializedCatalog = new SerializedObject(catalog);
+            SerializedProperty statsProperty = serializedCatalog.FindProperty("stats");
+            Array statIds = Enum.GetValues(typeof(StatId));
+            statsProperty.arraySize = statIds.Length;
+            for (int i = 0; i < statIds.Length; i++)
+            {
+                StatDefinition definition = StatCatalogDefinition.CreateDefaultDefinition((StatId)statIds.GetValue(i));
+                SerializedProperty entry = statsProperty.GetArrayElementAtIndex(i);
+                entry.FindPropertyRelative("statId").enumValueIndex = (int)definition.StatId;
+                entry.FindPropertyRelative("bounds").FindPropertyRelative("minimum").floatValue = definition.Bounds.Minimum;
+                entry.FindPropertyRelative("bounds").FindPropertyRelative("maximum").floatValue = definition.Bounds.Maximum;
+            }
+
+            serializedCatalog.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssets();
+            return catalog;
         }
 
         private static void AssignBaseStats(GameObject gameObject, EntityStatsDefinition stats)
@@ -575,6 +635,11 @@ namespace MP.Editor
                 projectileAttack = enemy.AddComponent<AutoProjectileAttackComponent>();
             }
 
+            if (!enemy.TryGetComponent(out NetworkAutoProjectileAttackAdapter _))
+            {
+                enemy.AddComponent<NetworkAutoProjectileAttackAdapter>();
+            }
+
             AssignAutoProjectileAttack(projectileAttack, TeamId.Enemy, projectilePrefab);
         }
 
@@ -607,15 +672,31 @@ namespace MP.Editor
             EnemyEntity enemyEntity = enemy.GetComponent<EnemyEntity>();
             if (enemyEntity != null)
             {
-                AssignEnemyKilledEventChannel(enemyEntity, channel);
+                AssignEnemyKilledEventChannel(enemyEntity, channel, "test_enemy");
             }
         }
 
-        private static void AssignEnemyKilledEventChannel(EnemyEntity enemy, EnemyKilledEventChannel channel)
+        private static void AssignEnemyKilledEventChannel(EnemyEntity enemy, EnemyKilledEventChannel channel, string enemyId)
         {
             var serializedEnemy = new SerializedObject(enemy);
+            serializedEnemy.FindProperty("enemyId").stringValue = enemyId;
             serializedEnemy.FindProperty("enemyKilledEventChannel").objectReferenceValue = channel;
             serializedEnemy.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void AssignEnemyRewardSystem(EnemyRewardSystem rewardSystem, NetworkEnemyRewardSystemAdapter rewardAdapter, EnemyKilledEventChannel channel)
+        {
+            var serializedRewardSystem = new SerializedObject(rewardSystem);
+            SerializedProperty rewards = serializedRewardSystem.FindProperty("rewardEntries");
+            rewards.arraySize = 1;
+            SerializedProperty reward = rewards.GetArrayElementAtIndex(0);
+            reward.FindPropertyRelative("enemyId").stringValue = "test_enemy";
+            reward.FindPropertyRelative("experienceReward").intValue = 1;
+            serializedRewardSystem.ApplyModifiedPropertiesWithoutUndo();
+
+            var serializedRewardAdapter = new SerializedObject(rewardAdapter);
+            serializedRewardAdapter.FindProperty("enemyKilledEventChannel").objectReferenceValue = channel;
+            serializedRewardAdapter.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void AssignEnemyDropTable(GameObject enemy, DropTableDefinition dropTable)
@@ -641,6 +722,11 @@ namespace MP.Editor
             if (!gameObject.TryGetComponent(out RespawnComponent respawn))
             {
                 respawn = gameObject.AddComponent<RespawnComponent>();
+            }
+
+            if (!gameObject.TryGetComponent(out NetworkRespawnAdapter _))
+            {
+                gameObject.AddComponent<NetworkRespawnAdapter>();
             }
 
             AssignRespawnSettings(respawn, true);
@@ -676,6 +762,11 @@ namespace MP.Editor
             if (!player.TryGetComponent(out PlayerProgressionComponent _))
             {
                 player.AddComponent<PlayerProgressionComponent>();
+            }
+
+            if (!player.TryGetComponent(out NetworkPlayerProgressionAdapter _))
+            {
+                player.AddComponent<NetworkPlayerProgressionAdapter>();
             }
 
             if (!player.TryGetComponent(out InventoryComponent _))

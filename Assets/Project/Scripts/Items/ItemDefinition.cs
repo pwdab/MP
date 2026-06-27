@@ -48,12 +48,68 @@ namespace MP.Items
         public EquipSlotId EquipSlot => canEquip ? equipSlot : EquipSlotId.None;
         public IReadOnlyList<StatModifierDefinition> EquipStatModifiers => equipStatModifiers ?? Array.Empty<StatModifierDefinition>();
 
+        public bool IsValid()
+        {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (string.IsNullOrWhiteSpace(itemId))
+            {
+                reason = $"{name} has an empty itemId.";
+                return false;
+            }
+
+            if (canEquip && equipSlot == EquipSlotId.None)
+            {
+                reason = $"{name} is equippable but has no equip slot.";
+                return false;
+            }
+
+            if (!canEquip && equipStatModifiers != null && equipStatModifiers.Length > 0)
+            {
+                reason = $"{name} has equip stat modifiers but is not equippable.";
+                return false;
+            }
+
+            if (equipStatModifiers != null)
+            {
+                for (int i = 0; i < equipStatModifiers.Length; i++)
+                {
+                    StatModifierDefinition modifier = equipStatModifiers[i];
+                    if (modifier == null)
+                    {
+                        reason = $"{name} has an empty equip stat modifier slot at index {i}.";
+                        return false;
+                    }
+
+                    if (!modifier.IsValid(out string modifierReason))
+                    {
+                        reason = $"{name} equip stat modifier {i} is invalid: {modifierReason}";
+                        return false;
+                    }
+                }
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+        }
+
         private void OnValidate()
         {
             NormalizeItemId();
             NormalizeStackSettings();
-            ValidateItemId();
-            ValidateEquipSettings();
+            LogItemIdWarnings();
+            LogEquipSettingWarnings();
         }
 
         private void NormalizeItemId()
@@ -75,7 +131,7 @@ namespace MP.Items
             maxStackSize = IsStackable ? Mathf.Max(1, maxStackSize) : 1;
         }
 
-        private void ValidateItemId()
+        private void LogItemIdWarnings()
         {
             if (string.IsNullOrWhiteSpace(itemId))
             {
@@ -98,7 +154,7 @@ namespace MP.Items
 #endif
         }
 
-        private void ValidateEquipSettings()
+        private void LogEquipSettingWarnings()
         {
             if (!canEquip && equipStatModifiers != null && equipStatModifiers.Length > 0)
             {

@@ -17,5 +17,15 @@ namespace MP.Gameplay.Entity
         {
             health = GetComponent<HealthComponent>();
         }
+
+        private void OnEnable()
+        {
+            CastleEntityRegistry.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            CastleEntityRegistry.Unregister(this);
+        }
     }
 }

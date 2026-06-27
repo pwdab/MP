@@ -1,5 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
+using System;
 
 namespace MP.Network
 {
@@ -16,7 +17,36 @@ namespace MP.Network
 
         public float CurrentHealth => currentHealth;
         public bool IsDead => isDead;
-        public bool IsValid => currentHealth >= 0f;
+        public bool IsValid()
+        {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (float.IsNaN(currentHealth) || float.IsInfinity(currentHealth))
+            {
+                reason = $"HealthStateSnapshot has invalid current health '{currentHealth}'.";
+                return false;
+            }
+
+            if (currentHealth < 0f)
+            {
+                reason = "HealthStateSnapshot current health is negative.";
+                return false;
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+        }
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {

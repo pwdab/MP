@@ -18,7 +18,7 @@ namespace MP.Gameplay.Entity
 
         private StatsComponent stats;
 
-        public float MaxHealth => stats.MaxHealth;
+        public float MaxHealth => stats.GetValue(StatId.MaxHealth);
 
         public float CurrentHealth => currentHealth;
         public bool IsDead { get; private set; }

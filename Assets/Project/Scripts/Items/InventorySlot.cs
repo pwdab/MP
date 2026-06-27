@@ -17,6 +17,63 @@ namespace MP.Items
         public bool HasItemInstance => item != null;
         public bool IsEmpty => Definition == null || quantity <= 0;
 
+        public bool IsValid()
+        {
+            return IsValid(out _);
+        }
+
+        public bool IsValid(out string reason)
+        {
+            if (Definition == null)
+            {
+                reason = "InventorySlot item definition is missing.";
+                return false;
+            }
+
+            if (quantity < 1)
+            {
+                reason = $"InventorySlot has invalid quantity '{quantity}'.";
+                return false;
+            }
+
+            if (quantity > MaxQuantity)
+            {
+                reason = $"InventorySlot quantity '{quantity}' exceeds max quantity '{MaxQuantity}'.";
+                return false;
+            }
+
+            if (item != null)
+            {
+                if (!item.IsValid(out string itemReason))
+                {
+                    reason = $"InventorySlot item instance is invalid: {itemReason}";
+                    return false;
+                }
+
+                if (definition != item.Definition)
+                {
+                    reason = "InventorySlot definition does not match its item instance definition.";
+                    return false;
+                }
+            }
+            else if (!definition.IsStackable)
+            {
+                reason = "InventorySlot has a non-stackable definition without an item instance.";
+                return false;
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        public void ValidateOrThrow()
+        {
+            if (!IsValid(out string reason))
+            {
+                throw new InvalidOperationException(reason);
+            }
+        }
+
         public InventorySlot(ItemDefinition definition, int quantity)
         {
             this.definition = definition != null ? definition : throw new ArgumentNullException(nameof(definition));

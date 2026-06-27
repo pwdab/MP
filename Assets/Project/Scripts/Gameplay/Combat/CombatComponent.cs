@@ -54,7 +54,7 @@ namespace MP.Gameplay.Combat
             }
 
             EntityRuntimeStats stats = statsComponent.Stats;
-            int attackCount = attackScheduler.Tick(deltaTime, stats.AttackSpeed);
+            int attackCount = attackScheduler.Tick(deltaTime, stats.GetValue(StatId.AttackSpeed));
 
             for (int i = 0; i < attackCount; i++)
             {
@@ -65,12 +65,12 @@ namespace MP.Gameplay.Combat
         private void ExecuteAttack(EntityRuntimeStats stats)
         {
             Vector2 origin = attackOrigin.position;
-            if (!targetQuery.TryFindNearestTarget(origin, stats.AutoAttackRange, team, out TargetableComponent target))
+            if (!targetQuery.TryFindNearestTarget(origin, stats.GetValue(StatId.AutoAttackRange), team, out TargetableComponent target))
             {
                 return;
             }
 
-            var request = new DamageRequest(DamageContext.FromInstigator(gameObject), target.Health, stats.AttackPower);
+            var request = new DamageRequest(DamageContext.FromInstigator(gameObject), target.Health, stats.GetValue(StatId.AttackPower));
             DamageSystem.ApplyDamage(request);
         }
     }

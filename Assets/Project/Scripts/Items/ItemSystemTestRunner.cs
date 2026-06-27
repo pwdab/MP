@@ -98,8 +98,8 @@ namespace MP.Items
 
         private void TestEquipSlotsAndStats()
         {
-            float baseAttackPower = stats.AttackPower;
-            float baseMaxHealth = stats.MaxHealth;
+            float baseAttackPower = stats.GetValue(StatId.AttackPower);
+            float baseMaxHealth = stats.GetValue(StatId.MaxHealth);
 
             InventorySlot swordSlot = FindFirstSlot(sword);
             if (swordSlot == null || !swordSlot.HasItemInstance)
@@ -117,14 +117,14 @@ namespace MP.Items
             Expect(equip.TryEquip(armorInstance), "Armor equips.");
             Expect(equip.GetEquippedItem(EquipSlotId.Weapon) == swordInstance, "Sword is equipped in Weapon slot.");
             Expect(equip.GetEquippedItem(EquipSlotId.Armor) == armorInstance, "Armor is equipped in Armor slot.");
-            Expect(stats.AttackPower > baseAttackPower, "Sword modifier increases AttackPower.");
-            Expect(stats.MaxHealth > baseMaxHealth, "Armor modifier increases MaxHealth.");
+            Expect(stats.GetValue(StatId.AttackPower) > baseAttackPower, "Sword modifier increases AttackPower.");
+            Expect(stats.GetValue(StatId.MaxHealth) > baseMaxHealth, "Armor modifier increases MaxHealth.");
 
             Expect(equip.Unequip(EquipSlotId.Weapon), "Weapon slot unequips.");
-            Expect(Mathf.Approximately(stats.AttackPower, baseAttackPower), "AttackPower returns to base after weapon unequip.");
+            Expect(Mathf.Approximately(stats.GetValue(StatId.AttackPower), baseAttackPower), "AttackPower returns to base after weapon unequip.");
             Expect(inventory.TryDropItemInstance(armorInstance), "Dropping equipped armor ItemInstance creates a world item.");
             Expect(equip.GetEquippedItem(EquipSlotId.Armor) == null, "Dropping equipped armor unequips Armor slot.");
-            Expect(Mathf.Approximately(stats.MaxHealth, baseMaxHealth), "MaxHealth returns to base after equipped armor drop.");
+            Expect(Mathf.Approximately(stats.GetValue(StatId.MaxHealth), baseMaxHealth), "MaxHealth returns to base after equipped armor drop.");
             DroppedItem droppedArmor = FindDroppedItem(armor, 1);
             Expect(droppedArmor != null && droppedArmor.Instance == armorInstance, "Dropped armor preserves ItemInstance identity.");
         }
